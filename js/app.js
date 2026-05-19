@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput: document.getElementById('search-input'),
     searchClearBtn: document.getElementById('search-clear-btn'),
     resultsCount: document.getElementById('results-count'),
+    typeSelect: document.getElementById('type-select'),
     sortSelect: document.getElementById('sort-select'),
     
     // Table & Pagination
@@ -152,16 +153,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Search, Sort & Pagination ────────────────────────────────────────────
   function applyFilters() {
     const term = els.searchInput.value.toLowerCase().trim();
+    const typeFilter = els.typeSelect.value;
     
-    if (term) {
-      filteredData = contractors.filter(c => {
-        const name = (c['Company Name'] || '').toLowerCase();
-        const tax = (c['Tax Code'] || '').toLowerCase();
+    filteredData = contractors.filter(c => {
+      const name = (c['Company Name'] || '').toLowerCase();
+      const tax = (c['Tax Code'] || '').toLowerCase();
+      
+      // Filter by type
+      if (typeFilter === 'company' && !tax.startsWith('9')) return false;
+      if (typeFilter === 'individual' && !tax.startsWith('8')) return false;
+      
+      // Filter by term
+      if (term) {
         return name.includes(term) || tax.includes(term);
-      });
-    } else {
-      filteredData = [...contractors];
-    }
+      }
+      return true;
+    });
     
     els.resultsCount.textContent = `Hiển thị ${formatNumber(filteredData.length)} kết quả`;
     
@@ -184,6 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'date':
           valA = parseDateForSort(a['Issuance Date']);
           valB = parseDateForSort(b['Issuance Date']);
+          if (valA === valB) {
+            const noA = parseInt(a['No.'] || 0, 10);
+            const noB = parseInt(b['No.'] || 0, 10);
+            return currentSort.dir === 'asc' ? noA - noB : noB - noA;
+          }
           return currentSort.dir === 'asc' ? valA - valB : valB - valA;
       }
     });
@@ -277,6 +289,11 @@ document.addEventListener('DOMContentLoaded', () => {
     els.searchClearBtn.addEventListener('click', () => {
       els.searchInput.value = '';
       els.searchClearBtn.hidden = true;
+      applyFilters();
+    });
+
+    // Type Filter Select
+    els.typeSelect.addEventListener('change', () => {
       applyFilters();
     });
 

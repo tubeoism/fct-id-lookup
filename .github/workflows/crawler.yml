@@ -2,10 +2,20 @@ name: eTax Crawler Automation
 
 on:
   schedule:
-    # Chạy hàng ngày vào lúc 00:00 UTC (khoảng 7:00 AM giờ VN)
-    - cron: '0 0 * * *'
+    # Chạy bổ sung hàng ngày vào lúc 00:00 UTC trừ ngày 1
+    - cron: '0 0 2-31 * *'
+    # Chạy cập nhật toàn bộ vào lúc 00:00 UTC ngày 1 hàng tháng
+    - cron: '0 0 1 * *'
   workflow_dispatch:
-    # Cho phép chạy thủ công từ tab Actions
+    inputs:
+      mode:
+        description: 'Chế độ chạy'
+        required: true
+        default: 'append'
+        type: choice
+        options:
+          - append
+          - full
 
 jobs:
   crawl_and_update:
@@ -29,8 +39,15 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Crawler (Append Mode)
-        run: npm run crawl
+      - name: Run Crawler
+        run: |
+          if [[ "${{ github.event.schedule }}" == "0 0 1 * *" || "${{ inputs.mode }}" == "full" ]]; then
+            echo "Running FULL update..."
+            npm run crawl:full
+          else
+            echo "Running APPEND update..."
+            npm run crawl
+          fi
 
       - name: Check for changes
         id: git-check
