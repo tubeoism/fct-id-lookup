@@ -1,0 +1,27 @@
+{
+  "name": "fct-id-lookup",
+  "version": "2.0.0",
+  "description": "Tra cứu danh sách nhà thầu nước ngoài đã đăng ký MST tại Việt Nam",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "crawl": "node crawler.js",
+    "crawl:full": "node crawler.js --full"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "playwright": "^1.44.0",
+    "csv-parse": "^5.5.6",
+    "csv-stringify": "^6.5.1"
+  },
+  "keywords": [
+    "nhà thầu nước ngoài",
+    "mã số thuế",
+    "etax",
+    "vietnam",
+    "FCT"
+  ],
+  "author": "FCT Lookup Team",
+  "license": "GPL-3.0"
+}

@@ -1,0 +1,52 @@
+name: eTax Crawler Automation
+
+on:
+  schedule:
+    # Chạy hàng ngày vào lúc 00:00 UTC (khoảng 7:00 AM giờ VN)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Cho phép chạy thủ công từ tab Actions
+
+jobs:
+  crawl_and_update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Crawler (Append Mode)
+        run: npm run crawl
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git status --porcelain
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push Data
+        if: steps.git-check.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add registered_contractors.json registered_contractors.csv
+          git commit -m "Auto-update contractors data 🤖"
+          git push
