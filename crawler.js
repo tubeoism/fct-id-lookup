@@ -102,10 +102,18 @@ function parseCsvLine(line) {
 }
 
 function saveCsv(records) {
-  // Sort by Issuance Date asc
-  records.sort((a, b) => parseDateForSort(a['Issuance Date']) - parseDateForSort(b['Issuance Date']));
+  // Sort by Issuance Date asc, then by original order
+  records.sort((a, b) => {
+    const timeA = parseDateForSort(a['Issuance Date']).getTime();
+    const timeB = parseDateForSort(b['Issuance Date']).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    return (a._orderIdx || 0) - (b._orderIdx || 0);
+  });
   // Re-number
-  records.forEach((r, i) => { r['No.'] = String(i + 1); });
+  records.forEach((r, i) => { 
+    r['No.'] = String(i + 1); 
+    delete r._orderIdx;
+  });
 
   const headers = ['No.', 'Tax Code', 'Company Name', 'Issuance Date'];
   const escapeField = (v) => {
@@ -308,30 +316,33 @@ async function crawlAllContractors(page) {
   if (MODE === 'full') {
     const seen = new Set();
     let updated = 0;
-    for (const c of allContractors) {
-      if (seen.has(c.mst)) continue;
+    const N = allContractors.length;
+    allContractors.forEach((c, index) => {
+      if (seen.has(c.mst)) return;
       seen.add(c.mst);
       const old = existingMap.get(c.mst);
       if (old && old['Company Name'] && old['Company Name'] !== c.ten) {
         log(`   🔄 Cập nhật tên: ${c.mst} | "${old['Company Name']}" → "${c.ten}"`);
         updated++;
       }
-      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian) });
-    }
+      const orderIdx = old && old['No.'] ? parseInt(old['No.'], 10) : 1000000 + (N - index);
+      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian), _orderIdx: orderIdx });
+    });
     log(`   📝 Tổng: ${records.length} | Tên được cập nhật: ${updated}`);
 
   } else {
     // APPEND
     for (const row of existingRows) {
-      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Company Name': row['Company Name'], 'Issuance Date': row['Issuance Date'] });
+      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Company Name': row['Company Name'], 'Issuance Date': row['Issuance Date'], _orderIdx: parseInt(row['No.'], 10) || 0 });
     }
     let newCount = 0, skipCount = 0;
-    for (const c of allContractors) {
-      if (existingMap.has(c.mst)) { skipCount++; continue; }
-      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian) });
+    const N = allContractors.length;
+    allContractors.forEach((c, index) => {
+      if (existingMap.has(c.mst)) { skipCount++; return; }
+      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian), _orderIdx: 1000000 + (N - index) });
       existingMap.set(c.mst, true);
       newCount++;
-    }
+    });
     log(`   ➕ Nhà thầu mới: ${newCount}`);
     log(`   ⏭️  Đã tồn tại (bỏ qua): ${skipCount}`);
   }
