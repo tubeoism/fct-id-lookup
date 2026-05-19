@@ -314,21 +314,45 @@ async function crawlAllContractors(page) {
   let records = [];
 
   if (MODE === 'full') {
-    const seen = new Set();
-    let updated = 0;
+    const finalMap = new Map();
+    let updatedCount = 0;
+    let newCount = 0;
+
+    // 1. Khởi tạo danh sách bằng dữ liệu cũ
+    for (const row of existingRows) {
+      finalMap.set(row['Tax Code'], {
+        'No.': '',
+        'Tax Code': row['Tax Code'],
+        'Company Name': row['Company Name'],
+        'Issuance Date': row['Issuance Date'],
+        _orderIdx: parseInt(row['No.'], 10) || 0
+      });
+    }
+
+    // 2. Duyệt qua dữ liệu mới để cập nhật tên hoặc thêm mới
     const N = allContractors.length;
     allContractors.forEach((c, index) => {
-      if (seen.has(c.mst)) return;
-      seen.add(c.mst);
-      const old = existingMap.get(c.mst);
-      if (old && old['Company Name'] && old['Company Name'] !== c.ten) {
-        log(`   🔄 Cập nhật tên: ${c.mst} | "${old['Company Name']}" → "${c.ten}"`);
-        updated++;
+      const existing = finalMap.get(c.mst);
+      if (existing) {
+        if (existing['Company Name'] !== c.ten) {
+          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Company Name']}" → "${c.ten}"`);
+          existing['Company Name'] = c.ten;
+          updatedCount++;
+        }
+      } else {
+        finalMap.set(c.mst, {
+          'No.': '',
+          'Tax Code': c.mst,
+          'Company Name': c.ten,
+          'Issuance Date': formatDate(c.thoigian),
+          _orderIdx: 1000000 + (N - index)
+        });
+        newCount++;
       }
-      const orderIdx = old && old['No.'] ? parseInt(old['No.'], 10) : 1000000 + (N - index);
-      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian), _orderIdx: orderIdx });
     });
-    log(`   📝 Tổng: ${records.length} | Tên được cập nhật: ${updated}`);
+
+    records = Array.from(finalMap.values());
+    log(`   📝 Tổng: ${records.length} | Thêm mới: ${newCount} | Tên được cập nhật: ${updatedCount}`);
 
   } else {
     // APPEND
