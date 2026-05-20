@@ -199,6 +199,24 @@ input, select {
   color: var(--text-main);
 }
 
+/* Language Toggle Text */
+.lang-text {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: var(--text-main);
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 4px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover .lang-text {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
 /* Theme Toggle Icons */
 [data-theme="light"] .icon-sun { display: none; }
 [data-theme="dark"] .icon-moon { display: none; }
@@ -471,8 +489,8 @@ input, select {
 }
 
 .col-no { width: 5%; text-align: center; }
-.col-tax { width: 15%; font-weight: 500; }
-.col-name { width: 60%; font-weight: 500; }
+.col-tax { width: 15%; }
+.col-name { width: 60%; }
 .col-date { width: 20%; color: var(--text-muted); }
 
 .data-table td.col-no { text-align: center; color: var(--text-muted); }

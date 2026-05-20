@@ -3,12 +3,30 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ─── Enforce Dark Mode ────────────────────────────────────────────────────
-  document.documentElement.setAttribute('data-theme', 'dark');
+  // ─── Theme Helper (GMT+7 Auto-switching) ──────────────────────────────────
+  function applyAutoTheme() {
+    const manualTheme = localStorage.getItem('fct_manual_theme');
+    if (manualTheme) {
+      document.documentElement.setAttribute('data-theme', manualTheme);
+      return;
+    }
+    const hour = parseInt(new Date().toLocaleString('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: 'numeric',
+      hour12: false
+    }), 10);
+    const targetTheme = (hour >= 19 || hour < 6) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', targetTheme);
+  }
+
+  applyAutoTheme();
+  setInterval(applyAutoTheme, 10000);
 
   // ─── DOM Elements ──────────────────────────────────────────────────────────
   const els = {
     themeBtn: document.getElementById('theme-toggle-btn'),
+    langBtn: document.getElementById('lang-toggle-btn'),
+    langText: document.getElementById('lang-text'),
 
     // Stats
     statTotal: document.getElementById('stat-total-val'),
@@ -35,28 +53,160 @@ document.addEventListener('DOMContentLoaded', () => {
     footerYear: document.getElementById('footer-year')
   };
 
-  // ─── State ────────────────────────────────────────────────────────────────
+  // ─── Translations & State ──────────────────────────────────────────────────
+  const translations = {
+    vi: {
+      app_title: "Tra cứu MST nhà thầu nước ngoài",
+      app_subtitle: "eTax VN – Cục Thuế",
+      stat_total_label: "Số lượng nhà thầu đã cấp mã",
+      stat_year_label: "Cấp mới trong năm ",
+      stat_updated_label: "Thông tin cấp mới nhất",
+      stat_none: "Chưa có",
+      search_placeholder: "Tìm theo tên nhà thầu hoặc mã số thuế...",
+      search_clear: "Xóa tìm kiếm",
+      label_type: "Loại:",
+      label_sort: "Sắp xếp:",
+      opt_all: "Tất cả",
+      opt_company: "Công ty",
+      opt_individual: "Cá nhân",
+      opt_date_asc: "Cũ nhất",
+      opt_date_desc: "Mới nhất",
+      opt_name_asc: "Tên A→Z",
+      opt_name_desc: "Tên Z→A",
+      opt_tax_asc: "MST A→Z",
+      opt_tax_desc: "MST Z→A",
+      results_count: "Hiển thị {count} kết quả",
+      results_loading: "Đang tải...",
+      th_no: "STT",
+      th_tax: "Mã số thuế",
+      th_name: "Tên nhà thầu",
+      th_date: "Ngày cấp",
+      empty_no_match: "Không tìm thấy kết quả phù hợp",
+      empty_error: "Không thể tải dữ liệu. Vui lòng kiểm tra lại file 'registered_contractors.json'.",
+      err_load: "Không thể tải dữ liệu nhà thầu",
+      pag_prev: "Trang trước",
+      pag_next: "Trang sau",
+      footer_source: "Nguồn dữ liệu:",
+      toggle_lang_title: "Chuyển sang tiếng Anh"
+    },
+    en: {
+      app_title: "Foreign Contractor Tax Code Lookup",
+      app_subtitle: "eTax VN – Tax Department",
+      stat_total_label: "Total Registered Contractors",
+      stat_year_label: "Newly Registered in ",
+      stat_updated_label: "Latest Registration Info",
+      stat_none: "N/A",
+      search_placeholder: "Search by contractor name or tax code...",
+      search_clear: "Clear search",
+      label_type: "Type:",
+      label_sort: "Sort:",
+      opt_all: "All",
+      opt_company: "Company",
+      opt_individual: "Individual",
+      opt_date_asc: "Oldest First",
+      opt_date_desc: "Newest First",
+      opt_name_asc: "Name A→Z",
+      opt_name_desc: "Name Z→A",
+      opt_tax_asc: "Tax Code A→Z",
+      opt_tax_desc: "Tax Code Z→A",
+      results_count: "Showing {count} results",
+      results_loading: "Loading...",
+      th_no: "No.",
+      th_tax: "Tax Code",
+      th_name: "Contractor Name",
+      th_date: "Issuance Date",
+      empty_no_match: "No matching results found",
+      empty_error: "Unable to load data. Please check 'registered_contractors.json'.",
+      err_load: "Failed to load contractor data",
+      pag_prev: "Previous Page",
+      pag_next: "Next Page",
+      footer_source: "Data Source:",
+      toggle_lang_title: "Chuyển sang tiếng Việt"
+    }
+  };
+
   let contractors = [];
   let filteredData = [];
   let currentPage = 1;
   const pageSize = 50;
+  let currentLang = localStorage.getItem('fct_lang') || 'vi';
 
   // Default: sort by date ascending (oldest first, matching original data order)
   let currentSort = { key: 'date', dir: 'asc' };
 
+  // ─── Translation Engine ───────────────────────────────────────────────────
+  function t(key, replacements = {}) {
+    let text = (translations[currentLang] && translations[currentLang][key]) || (translations['vi'][key]) || key;
+    for (const [k, v] of Object.entries(replacements)) {
+      text = text.replace(`{${k}}`, v);
+    }
+    return text;
+  }
+
+  function updateLanguageUI() {
+    localStorage.setItem('fct_lang', currentLang);
+    document.documentElement.setAttribute('lang', currentLang);
+
+    // Static text
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (key === 'stat_year_label') {
+        el.textContent = t(key);
+        const ySpan = document.createElement('span');
+        ySpan.id = 'stat-current-year';
+        ySpan.textContent = new Date().getFullYear();
+        el.appendChild(ySpan);
+      } else {
+        el.textContent = t(key);
+      }
+    });
+
+    // Placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+
+    document.title = t('app_title');
+
+    if (els.langBtn && els.langText) {
+      els.langText.textContent = currentLang === 'vi' ? 'EN' : 'VI';
+      els.langBtn.title = t('toggle_lang_title');
+    }
+
+    if (els.pagPrev) els.pagPrev.setAttribute('aria-label', t('pag_prev'));
+    if (els.pagNext) els.pagNext.setAttribute('aria-label', t('pag_next'));
+    if (els.searchClearBtn) els.searchClearBtn.title = t('search_clear');
+
+    if (contractors.length > 0) {
+      calculateStats();
+      applyFilters();
+    }
+  }
+
   // ─── Init ─────────────────────────────────────────────────────────────────
   const currentYear = new Date().getFullYear();
   els.footerYear.textContent = currentYear;
-  els.statCurrentYear.textContent = currentYear;
+  if (els.statCurrentYear) els.statCurrentYear.textContent = currentYear;
+
+  updateLanguageUI();
 
   fetchContractors();
   setupEventListeners();
 
-  // ─── Theme Toggle (still kept for manual use, no toast) ───────────────────
+  // ─── Theme Toggle & Language Toggle ───────────────────────────────────────
   if (els.themeBtn) {
     els.themeBtn.addEventListener('click', () => {
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      const newTheme = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('fct_manual_theme', newTheme);
+    });
+  }
+
+  if (els.langBtn) {
+    els.langBtn.addEventListener('click', () => {
+      currentLang = currentLang === 'vi' ? 'en' : 'vi';
+      updateLanguageUI();
     });
   }
 
@@ -72,12 +222,12 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFilters();
     } catch (err) {
       console.error('Lỗi lấy danh sách:', err);
-      showToast('Không thể tải dữ liệu nhà thầu', 'error');
+      showToast(t('err_load'), 'error');
       els.tableBody.innerHTML = `
         <tr class="empty-state">
           <td colspan="4">
             <span class="material-symbols-rounded">error</span>
-            <p>Không thể tải dữ liệu. Vui lòng kiểm tra lại file 'registered_contractors.json'.</p>
+            <p>${t('empty_error')}</p>
           </td>
         </tr>
       `;
@@ -108,9 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (newestTs > 0) {
-      els.statUpdated.textContent = new Date(newestTs).toLocaleDateString('vi-VN');
+      els.statUpdated.textContent = new Date(newestTs).toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US');
     } else {
-      els.statUpdated.textContent = 'Chưa có';
+      els.statUpdated.textContent = t('stat_none');
     }
   }
 
@@ -132,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
-    els.resultsCount.textContent = `Hiển thị ${formatNumber(filteredData.length)} kết quả`;
+    els.resultsCount.textContent = t('results_count', { count: formatNumber(filteredData.length) });
 
     // Sort
     filteredData.sort((a, b) => {
@@ -191,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr class="empty-state">
           <td colspan="4">
             <span class="material-symbols-rounded">search_off</span>
-            <p>Không tìm thấy kết quả phù hợp</p>
+            <p>${t('empty_no_match')}</p>
           </td>
         </tr>
       `;
@@ -210,10 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // STT always shows sequential row number in current filtered+sorted result
     els.tableBody.innerHTML = pageData.map((c, i) => `
       <tr>
-        <td class="col-no" data-label="STT">${startIdx + i + 1}</td>
-        <td class="col-tax" data-label="Mã số thuế">${escapeHtml(c['Tax Code'] || '-')}</td>
-        <td class="col-name" data-label="Tên nhà thầu">${escapeHtml(c['Contractor Name'] || '-')}</td>
-        <td class="col-date" data-label="Ngày cấp">${escapeHtml(c['Issuance Date'] || '-')}${c['Issuance Time'] ? ' ' + escapeHtml(c['Issuance Time']) : ''}</td>
+        <td class="col-no" data-label="${t('th_no')}">${startIdx + i + 1}</td>
+        <td class="col-tax" data-label="${t('th_tax')}">${escapeHtml(c['Tax Code'] || '-')}</td>
+        <td class="col-name" data-label="${t('th_name')}">${escapeHtml(c['Contractor Name'] || '-')}</td>
+        <td class="col-date" data-label="${t('th_date')}">${escapeHtml(c['Issuance Date'] || '-')}${c['Issuance Time'] ? ' ' + escapeHtml(c['Issuance Time']) : ''}</td>
       </tr>
     `).join('');
 
@@ -348,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatNumber(num) {
-    return new Intl.NumberFormat('vi-VN').format(num);
+    return new Intl.NumberFormat(currentLang === 'vi' ? 'vi-VN' : 'en-US').format(num);
   }
 
   function escapeHtml(unsafe) {
