@@ -55,10 +55,9 @@ fct-id-lookup/
 
 | Tính năng | Mô tả |
 |---|---|
-| **Dark / Light mode** | Chuyển đổi thủ công bằng nút trên thanh tiêu đề. Tự động chuyển sang dark mode từ 19:00 đến 06:00 nếu người dùng chưa can thiệp. Trạng thái được lưu vào `localStorage`. |
-| **Đồng hồ thời gian thực** | Hiển thị giờ hiện tại (định dạng `vi-VN`) trên thanh tiêu đề, cập nhật mỗi giây. |
-| **Skeleton loading** | Hiển thị placeholder animation trong khi đang tải dữ liệu JSON. |
-| **Toast notification** | Thông báo nhỏ ở góc màn hình cho các sự kiện (tải lỗi, đổi theme…), tự động biến mất sau 3 giây. |
+| **Dark Mode** | Dark mode luôn được tự động áp dụng (enforced) làm chủ đề mặc định để mang lại trải nghiệm đồng bộ và hiện đại tối đa. Nút chuyển đổi trên thanh tiêu đề cho phép người dùng thay đổi thủ công mà không gây phiền toái bằng thông báo toast. |
+| **Skeleton loading** | Hiển thị placeholder animation trong khi đang tải dữ liệu JSON để tối ưu trải nghiệm người dùng (UX). |
+| **Toast notification** | Thông báo nhỏ ở góc màn hình cho các lỗi hệ thống (như tải dữ liệu thất bại), tự động biến mất sau 3 giây. |
 | **Responsive** | Giao diện tương thích cả desktop lẫn thiết bị di động. |
 
 ### Thống kê tổng quan (Stats Cards)
@@ -73,7 +72,7 @@ Ba thẻ thống kê hiển thị ngay trên đầu trang:
 
 ### Tìm kiếm
 
-- Ô tìm kiếm hỗ trợ tìm theo **tên công ty** hoặc **mã số thuế** (không phân biệt hoa/thường).
+- Ô tìm kiếm hỗ trợ tìm theo **tên nhà thầu** hoặc **mã số thuế** (không phân biệt hoa/thường).
 - **Debounce 300ms** – tránh gọi lại quá nhiều khi người dùng gõ nhanh.
 - Nút **Xóa (×)** xuất hiện khi có nội dung trong ô tìm kiếm để xóa nhanh.
 - Số kết quả tìm được hiển thị theo thời gian thực.
@@ -92,15 +91,15 @@ Bộ lọc dropdown **Loại** cho phép thu hẹp kết quả:
 
 Hỗ trợ sắp xếp theo hai cách:
 
-1. **Click vào tiêu đề cột** trên bảng (desktop) – click lần đầu: tăng dần, click lại: giảm dần.
+1. **Click vào tiêu đề cột** trên bảng (desktop) – click lần đầu: tăng dần, click lại: giảm dần (riêng cột STT luôn hiển thị theo thứ tự tăng dần cố định).
 2. **Dropdown sắp xếp** (responsive, hoạt động trên cả mobile).
 
 | Cột | Khóa sắp xếp |
 |---|---|
-| STT | Số thứ tự tăng/giảm |
+| STT | *Không hỗ trợ sắp xếp (STT luôn hiển thị tăng dần theo danh sách hiển thị)* |
 | Mã số thuế | A→Z / Z→A |
-| Tên công ty | A→Z / Z→A |
-| Ngày cấp | Mới nhất / Cũ nhất |
+| Tên nhà thầu | A→Z / Z→A |
+| Ngày cấp | Mới nhất / Cũ nhất (sử dụng ngày và giờ cấp - Issuance Time để sắp xếp chính xác thứ tự mới cũ) |
 
 ### Bảng dữ liệu
 
@@ -108,9 +107,9 @@ Bảng hiển thị 4 cột:
 
 | Cột | Mô tả |
 |---|---|
-| STT | Số thứ tự theo danh sách gốc |
+| STT | Số thứ tự hiển thị tuần tự tăng dần (không phục vụ sắp xếp) |
 | Mã số thuế | Mã số thuế FCT của nhà thầu |
-| Tên công ty | Tên nhà thầu nước ngoài |
+| Tên nhà thầu | Tên nhà thầu nước ngoài |
 | Ngày cấp | Ngày cấp mã số thuế (định dạng `DD/MM/YYYY`) |
 
 ### Phân trang
@@ -146,10 +145,10 @@ Bot sử dụng **Playwright** (Chromium headless) để điều hướng và th
 
 ### Xử lý dữ liệu
 
-- **Đọc CSV hiện có**: hỗ trợ parse CSV phức tạp (trường có dấu phẩy, nháy kép, xuống dòng).
-- **Sắp xếp**: danh sách cuối cùng được sắp xếp theo `Ngày cấp` tăng dần trước khi lưu.
-- **Đánh số lại STT** sau mỗi lần lưu.
-- **Định dạng ngày**: chuẩn hóa `DD/MM/YYYY HH:MM:SS` → `DD/MM/YYYY`.
+- **Đọc CSV hiện có**: hỗ trợ parse CSV phức tạp (trường có dấu phẩy, nháy kép, xuống dòng) và hỗ trợ cơ chế tự động migrate các dữ liệu cũ có trường `Company Name` sang trường mới `Contractor Name`.
+- **Sắp xếp**: danh sách cuối cùng được sắp xếp theo `Ngày cấp` và `Giờ cấp` (Issuance Time) tăng dần trước khi lưu.
+- **Đánh số lại STT** sau mỗi lần lưu (dữ liệu STT gốc chỉ phục vụ kiểm tra tính toàn vẹn integrity).
+- **Định dạng ngày và giờ**: chuẩn hóa ngày cấp thành `DD/MM/YYYY` và trích xuất giờ cấp thành `HH:MM:SS` lưu vào cột `Issuance Time`.
 - **User Agent**: giả lập Chrome 120 trên Windows để tránh bị chặn.
 
 ---
@@ -229,8 +228,9 @@ python -m http.server 8080
   {
     "No.": "1",
     "Tax Code": "9000000001",
-    "Company Name": "ABC Foreign Contractor Co., Ltd.",
-    "Issuance Date": "01/01/2020"
+    "Contractor Name": "ABC Foreign Contractor Co., Ltd.",
+    "Issuance Date": "01/01/2020",
+    "Issuance Time": "10:30:15"
   }
 ]
 ```
@@ -238,8 +238,8 @@ python -m http.server 8080
 ### `registered_contractors.csv`
 
 ```csv
-No.,Tax Code,Company Name,Issuance Date
-1,9000000001,"ABC Foreign Contractor Co., Ltd.",01/01/2020
+No.,Tax Code,Contractor Name,Issuance Date,Issuance Time
+1,9000000001,"ABC Foreign Contractor Co., Ltd.",01/01/2020,10:30:15
 ```
 
 - Encoding: **UTF-8 with BOM** (tương thích Microsoft Excel).

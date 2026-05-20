@@ -269,6 +269,10 @@ input, select {
   line-height: 1.2;
 }
 
+#stat-updated-val {
+  font-size: 1.1rem;
+}
+
 .stat-label {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -377,6 +381,10 @@ input, select {
   border-color: var(--primary-color);
 }
 
+#type-select {
+  margin-right: 12px;
+}
+
 /* Table */
 .table-section {
   background-color: var(--bg-surface);
@@ -416,6 +424,16 @@ input, select {
 .data-table th:hover {
   background-color: var(--border-color);
   color: var(--text-main);
+}
+
+/* Disable pointer and hover styles for display-only STT column header */
+.data-table th.col-no {
+  cursor: default;
+}
+
+.data-table th.col-no:hover {
+  background-color: var(--bg-surface-variant);
+  color: var(--text-muted);
 }
 
 .data-table th > span:first-child {

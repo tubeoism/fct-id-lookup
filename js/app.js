@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
     els.tableBody.innerHTML = pageData.map((c, i) => `
       <tr>
         <td class="col-no" data-label="STT">${startIdx + i + 1}</td>
-        <td class="col-tax" data-label="Mã số thuế">${c['Tax Code'] || '-'}</td>
-        <td class="col-name" data-label="Tên nhà thầu">${c['Contractor Name'] || '-'}</td>
-        <td class="col-date" data-label="Ngày cấp">${c['Issuance Date'] || '-'}</td>
+        <td class="col-tax" data-label="Mã số thuế">${escapeHtml(c['Tax Code'] || '-')}</td>
+        <td class="col-name" data-label="Tên nhà thầu">${escapeHtml(c['Contractor Name'] || '-')}</td>
+        <td class="col-date" data-label="Ngày cấp">${escapeHtml(c['Issuance Date'] || '-')}</td>
       </tr>
     `).join('');
 
