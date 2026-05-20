@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_next: "Trang sau",
       footer_source: "Nguồn dữ liệu:",
       toggle_lang_title: "Chuyển sang tiếng Anh",
-      toggle_theme_title: "Chuyển đổi chủ đề sáng/tối",
       footer_data_link: "eTax VN – Cục Thuế"
     },
     en: {
@@ -125,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_next: "Next Page",
       footer_source: "Data Source:",
       toggle_lang_title: "Switch to Vietnamese",
-      toggle_theme_title: "Toggle dark/light mode",
       footer_data_link: "eTax VN – Tax Department"
     }
   };
@@ -167,10 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (els.langBtn && els.langText) {
       els.langText.textContent = currentLang === 'vi' ? 'EN' : 'VI';
       els.langBtn.title = t('toggle_lang_title');
-    }
-
-    if (els.themeBtn) {
-      els.themeBtn.title = t('toggle_theme_title');
     }
 
     if (els.pagPrev) els.pagPrev.setAttribute('aria-label', t('pag_prev'));
