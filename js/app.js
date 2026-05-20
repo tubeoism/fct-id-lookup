@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   applyAutoTheme();
-  setInterval(applyAutoTheme, 10000);
+  const _autoThemeInterval = setInterval(applyAutoTheme, 10000);
 
   // ─── DOM Elements ──────────────────────────────────────────────────────────
   const els = {
@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
     pagInfo: document.getElementById('pag-info'),
     thSortables: document.querySelectorAll('th[data-sort]'),
 
-    footerYear: document.getElementById('footer-year')
+    footerYear: document.getElementById('footer-year'),
+    toastContainer: document.getElementById('toast-container')
   };
 
   // ─── Translations & State ──────────────────────────────────────────────────
@@ -87,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_prev: "Trang trước",
       pag_next: "Trang sau",
       footer_source: "Nguồn dữ liệu:",
-      toggle_lang_title: "Chuyển sang tiếng Anh"
+      toggle_lang_title: "Chuyển sang tiếng Anh",
+      footer_data_link: "eTax VN – Cục Thuế"
     },
     en: {
       app_title: "Foreign Contractor Tax Code Lookup",
@@ -121,7 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_prev: "Previous Page",
       pag_next: "Next Page",
       footer_source: "Data Source:",
-      toggle_lang_title: "Chuyển sang tiếng Việt"
+      toggle_lang_title: "Chuyển sang tiếng Việt",
+      footer_data_link: "eTax VN – Cục Thuế"
     }
   };
 
@@ -166,7 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (els.pagPrev) els.pagPrev.setAttribute('aria-label', t('pag_prev'));
     if (els.pagNext) els.pagNext.setAttribute('aria-label', t('pag_next'));
-    if (els.searchClearBtn) els.searchClearBtn.title = t('search_clear');
+    if (els.searchClearBtn) {
+      els.searchClearBtn.title = t('search_clear');
+      els.searchClearBtn.setAttribute('aria-label', t('search_clear'));
+    }
+    if (els.langBtn) {
+      els.langBtn.setAttribute('aria-label', currentLang === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt');
+    }
 
     if (contractors.length > 0) {
       calculateStats();
@@ -208,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('registered_contractors.json');
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       contractors = await res.json();
+      if (!Array.isArray(contractors)) throw new Error('Invalid data format: expected JSON array');
 
       calculateStats();
       applyFilters();
@@ -231,12 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const total = contractors.length;
     els.statTotal.textContent = formatNumber(total);
 
-    const currentYear = new Date().getFullYear();
+    const thisYear = new Date().getFullYear(); // local var avoids shadowing outer currentYear
     const newThisYear = contractors.filter(c => {
       if (!c['Issuance Date']) return false;
       const parts = c['Issuance Date'].split('/');
       if (parts.length !== 3) return false;
-      return parseInt(parts[2], 10) === currentYear;
+      return parseInt(parts[2], 10) === thisYear;
     }).length;
 
     els.statYear.textContent = formatNumber(newThisYear);
@@ -493,12 +503,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function escapeHtml(unsafe) {
-    return (unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return (unsafe || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   // ─── Toast System ───────────────────────────────────────────────────────────
   function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
+    const container = els.toastContainer;
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
 

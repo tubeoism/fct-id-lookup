@@ -6,38 +6,33 @@
   --md-sys-color-primary-h: 226;
   --md-sys-color-primary-s: 70%;
   --md-sys-color-primary-l: 50%;
-  
-  --md-sys-color-secondary-h: 200;
-  --md-sys-color-secondary-s: 50%;
-  --md-sys-color-secondary-l: 45%;
 
   /* Light Theme Colors */
   --bg-base: hsl(210, 20%, 98%);
   --bg-surface: #ffffff;
   --bg-surface-variant: hsl(210, 14%, 93%);
   --text-main: hsl(210, 20%, 15%);
-  --text-muted: hsl(210, 10%, 40%);
+  --text-muted: hsl(210, 12%, 32%); /* WCAG AA+ on small text */
   --border-color: hsl(210, 14%, 89%);
-  
+
   --primary-color: hsl(var(--md-sys-color-primary-h), var(--md-sys-color-primary-s), var(--md-sys-color-primary-l));
   --primary-bg: hsl(var(--md-sys-color-primary-h), var(--md-sys-color-primary-s), 95%);
-  
+
   --success-color: hsl(150, 60%, 40%);
   --success-bg: hsl(150, 60%, 95%);
-  
+
   --warning-color: hsl(40, 90%, 45%);
   --warning-bg: hsl(40, 90%, 95%);
-  
+
   --info-color: hsl(200, 70%, 45%);
   --info-bg: hsl(200, 70%, 95%);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-  
+
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
   --radius-full: 9999px;
 
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -49,18 +44,18 @@
   --bg-surface: hsl(220, 15%, 16%);
   --bg-surface-variant: hsl(220, 15%, 22%);
   --text-main: hsl(210, 20%, 95%);
-  --text-muted: hsl(210, 10%, 70%);
+  --text-muted: hsl(210, 12%, 78%); /* WCAG AA+ on small text */
   --border-color: hsl(220, 15%, 26%);
-  
+
   --primary-color: hsl(var(--md-sys-color-primary-h), 80%, 70%);
   --primary-bg: hsl(var(--md-sys-color-primary-h), 40%, 20%);
-  
+
   --success-color: hsl(150, 60%, 60%);
   --success-bg: hsl(150, 60%, 20%);
-  
+
   --warning-color: hsl(40, 90%, 60%);
   --warning-bg: hsl(40, 90%, 20%);
-  
+
   --info-color: hsl(200, 70%, 60%);
   --info-bg: hsl(200, 70%, 20%);
 
@@ -217,6 +212,20 @@ input, select {
   color: var(--primary-color);
 }
 
+/* Focus Visible – keyboard accessibility (WCAG 2.4.7) */
+.icon-btn:focus-visible,
+.pag-btn:focus-visible,
+.pag-page-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.search-input:focus-visible,
+.sort-select:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 0;
+}
+
 /* Theme Toggle Icons */
 [data-theme="light"] .icon-sun { display: none; }
 [data-theme="dark"] .icon-moon { display: none; }
@@ -274,7 +283,6 @@ input, select {
 .stat-icon-primary { background-color: var(--primary-bg); color: var(--primary-color); }
 .stat-icon-green { background-color: var(--success-bg); color: var(--success-color); }
 .stat-icon-amber { background-color: var(--warning-bg); color: var(--warning-color); }
-.stat-icon-blue { background-color: var(--info-bg); color: var(--info-color); }
 
 .stat-body {
   display: flex;
@@ -401,6 +409,11 @@ input, select {
 
 #type-select {
   margin-right: 12px;
+}
+
+/* Dropdown arrow: higher contrast in Dark Mode */
+[data-theme="dark"] .sort-select {
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23aaa%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
 }
 
 /* Table */
@@ -640,7 +653,7 @@ input, select {
 }
 
 .toast.toast-error { background-color: hsl(0, 70%, 45%); color: white; }
-.toast.toast-success { background-color: hsl(150, 60%, 30%); color: white; }
+.toast.toast-success { background-color: hsl(150, 65%, 22%); color: white; } /* darkened for WCAG AA contrast */
 .toast.toast-info { background-color: var(--primary-color); color: white; }
 
 .toast.hiding {

@@ -4,7 +4,7 @@
 
 Công cụ gồm hai thành phần chính:
 - **Web app tĩnh** – giao diện tra cứu, tìm kiếm và lọc danh sách nhà thầu ngay trên trình duyệt.
-- **Crawler** – bot tự động thu thập dữ liệu từ cổng eTax VN (Tổng cục Thuế) và lưu về dạng CSV + JSON.
+- **Crawler** – bot tự động thu thập dữ liệu từ cổng eTax VN (Cục Thuế) và lưu về dạng CSV + JSON.
 
 ---
 
@@ -13,6 +13,7 @@ Công cụ gồm hai thành phần chính:
 - [Tổng quan](#tổng-quan)
 - [Cấu trúc dự án](#cấu-trúc-dự-án)
 - [Tính năng Web App](#tính-năng-web-app)
+- [Bảo mật & Accessibility](#bảo-mật--accessibility)
 - [Tính năng Crawler](#tính-năng-crawler)
 - [Tự động hóa (GitHub Actions)](#tự-động-hóa-github-actions)
 - [Cài đặt & Chạy thủ công](#cài-đặt--chạy-thủ-công)
@@ -23,7 +24,7 @@ Công cụ gồm hai thành phần chính:
 
 ## Tổng quan
 
-Nguồn dữ liệu: [eTax VN – Tổng cục Thuế](https://etaxvn.gdt.gov.vn/nccnn/Request)
+Nguồn dữ liệu: [eTax VN – Cục Thuế](https://etaxvn.gdt.gov.vn/nccnn/Request)
 
 Dự án lấy dữ liệu từ cổng eTax VN, lưu trữ dưới dạng tĩnh (`registered_contractors.json` và `registered_contractors.csv`), và phục vụ tra cứu thông qua một trang HTML thuần – không cần backend hay database.
 
@@ -35,9 +36,10 @@ Dự án lấy dữ liệu từ cổng eTax VN, lưu trữ dưới dạng tĩnh 
 fct-id-lookup/
 ├── index.html                    # Giao diện web app chính
 ├── css/
-│   └── style.css                 # Toàn bộ stylesheet (theme, layout, components)
+│   └── style.css                 # Stylesheet (theme, layout, components, responsive)
 ├── js/
-│   └── app.js                    # Logic frontend (tìm kiếm, lọc, phân trang, theme)
+│   ├── theme-init.js             # Inline theme detection – chạy trước CSS để tránh FOUC
+│   └── app.js                    # Logic frontend (i18n, tìm kiếm, lọc, phân trang, theme)
 ├── crawler.js                    # Bot thu thập dữ liệu từ eTax VN (Node.js + Playwright)
 ├── registered_contractors.json   # Dữ liệu nhà thầu (nguồn chính cho web app)
 ├── registered_contractors.csv    # Dữ liệu nhà thầu dạng CSV (Excel-friendly, UTF-8 BOM)
@@ -55,10 +57,12 @@ fct-id-lookup/
 
 | Tính năng | Mô tả |
 |---|---|
-| **Dark Mode** | Dark mode luôn được tự động áp dụng (enforced) làm chủ đề mặc định để mang lại trải nghiệm đồng bộ và hiện đại tối đa. Nút chuyển đổi trên thanh tiêu đề cho phép người dùng thay đổi thủ công mà không gây phiền toái bằng thông báo toast. |
-| **Skeleton loading** | Hiển thị placeholder animation trong khi đang tải dữ liệu JSON để tối ưu trải nghiệm người dùng (UX). |
-| **Toast notification** | Thông báo nhỏ ở góc màn hình cho các lỗi hệ thống (như tải dữ liệu thất bại), tự động biến mất sau 3 giây. |
-| **Responsive** | Giao diện tương thích cả desktop lẫn thiết bị di động. |
+| **Dark / Light Mode tự động** | Tự động chuyển sang Dark Mode lúc 19:00 và Light Mode lúc 06:00 (GMT+7). Người dùng có thể ghi đè thủ công bằng nút trên thanh tiêu đề – lựa chọn được lưu vào `localStorage`. |
+| **Chống FOUC** | Script [`theme-init.js`](js/theme-init.js) chạy đồng bộ trong `<head>` trước khi CSS render, đảm bảo theme đúng ngay từ frame đầu tiên mà không có hiện tượng nhấp nháy. |
+| **Đa ngôn ngữ (i18n)** | Hỗ trợ chuyển đổi Tiếng Việt ↔ English qua nút toggle trên thanh tiêu đề. Ngôn ngữ được lưu vào `localStorage` và áp dụng cho toàn bộ giao diện, bao gồm `aria-label`, `placeholder`, `title`, và `document.title`. |
+| **Skeleton loading** | Hiển thị placeholder animation trong khi đang tải dữ liệu JSON. |
+| **Toast notification** | Thông báo nhỏ ở góc màn hình cho các lỗi hệ thống, tự động biến mất sau 3 giây. |
+| **Responsive** | Giao diện tương thích cả desktop lẫn thiết bị di động. Trên mobile, bảng chuyển thành layout card với label cho từng ô dữ liệu. |
 
 ### Thống kê tổng quan (Stats Cards)
 
@@ -66,9 +70,9 @@ Ba thẻ thống kê hiển thị ngay trên đầu trang:
 
 | Thẻ | Nội dung |
 |---|---|
-| **Tổng nhà thầu** | Tổng số bản ghi trong danh sách. |
-| **Đăng ký năm [năm hiện tại]** | Số nhà thầu được cấp mã trong năm hiện tại. |
-| **Cập nhật lần cuối** | Ngày cấp mã số thuế mới nhất trong dữ liệu (ước lượng thời điểm cập nhật). |
+| **Số lượng nhà thầu đã cấp mã** | Tổng số bản ghi trong danh sách. |
+| **Cấp mới trong năm [năm]** | Số nhà thầu được cấp mã trong năm hiện tại. |
+| **Thông tin cấp mới nhất** | Ngày cấp mã số thuế mới nhất trong dữ liệu. |
 
 ### Tìm kiếm
 
@@ -118,6 +122,29 @@ Bảng hiển thị 4 cột:
 - Thanh phân trang với nút **Trước / Sau** và tối đa **5 nút số trang** (kèm dấu `...` khi cần).
 - Thông tin `[từ] - [đến] / [tổng]` hiển thị ngay trên thanh phân trang.
 - Tự động về trang 1 khi thay đổi từ khóa tìm kiếm hoặc bộ lọc.
+
+---
+
+## Bảo mật & Accessibility
+
+### Bảo mật
+
+| Biện pháp | Chi tiết |
+|---|---|
+| **Content Security Policy** | `<meta http-equiv="Content-Security-Policy">` giới hạn `script-src 'self'`, chặn inline script và nguồn ngoài trừ Google Fonts. |
+| **XSS Prevention** | Hàm `escapeHtml()` xử lý đầy đủ 5 ký tự nguy hiểm (`&`, `<`, `>`, `"`, `'`) cho mọi dữ liệu hiển thị từ JSON. |
+| **Data Validation** | Dữ liệu JSON được kiểm tra cấu trúc (`Array.isArray`) trước khi xử lý, ngăn crash khi file bị hỏng. |
+| **External Links** | Tất cả liên kết ngoài đều có `rel="noopener noreferrer"` để ngăn tab-napping và bảo vệ referrer. |
+
+### Accessibility (WCAG 2.1)
+
+| Tiêu chí | Chi tiết |
+|---|---|
+| **Tương phản văn bản** | `--text-muted` đạt tỷ lệ ≥ 6:1 trên cả Light và Dark Mode, vượt WCAG AA cho cỡ chữ nhỏ (0.85rem). |
+| **Focus Visible** | Tất cả phần tử tương tác (nút, input, dropdown, phân trang) đều có `:focus-visible` outline theo WCAG 2.4.7. |
+| **ARIA Labels** | `aria-label` được cập nhật động khi chuyển ngôn ngữ cho các nút chức năng. |
+| **Dark Mode Dropdown** | Mũi tên SVG của dropdown sử dụng màu riêng cho Dark Mode (`#aaa`) để đảm bảo tương phản ≥ 6:1. |
+| **Semantic HTML** | Sử dụng `<header>`, `<main>`, `<footer>`, `<section>`, `<table>` đúng ngữ nghĩa, với `aria-label` cho các section. |
 
 ---
 
