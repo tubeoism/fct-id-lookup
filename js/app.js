@@ -149,16 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Static text
     document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.dataset.i18n;
-      if (key === 'stat_year_label') {
-        el.textContent = t(key);
-        const ySpan = document.createElement('span');
-        ySpan.id = 'stat-current-year';
-        ySpan.textContent = new Date().getFullYear();
-        el.appendChild(ySpan);
-      } else {
-        el.textContent = t(key);
-      }
+      el.textContent = t(el.dataset.i18n);
     });
 
     // Placeholders
@@ -363,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="col-no" data-label="${t('th_no')}">${startIdx + i + 1}</td>
         <td class="col-tax" data-label="${t('th_tax')}">${escapeHtml(c['Tax Code'] || '-')}</td>
         <td class="col-name" data-label="${t('th_name')}">${escapeHtml(c['Contractor Name'] || '-')}</td>
-        <td class="col-date" data-label="${t('th_date')}">${escapeHtml(c['Issuance Date'] || '-')}${c['Issuance Time'] ? ' ' + escapeHtml(c['Issuance Time']) : ''}</td>
+        <td class="col-date" data-label="${t('th_date')}">${escapeHtml(c['Issuance Date'] || '-')}</td>
       </tr>
     `).join('');
 
