@@ -10,6 +10,9 @@
  * Output:
  *   registered_contractors.csv   — Danh sách nhà thầu (CSV)
  *   registered_contractors.json  — Bản sao JSON
+ *
+ * Fields:
+ *   No., Tax Code, Contractor Name, Issuance Date, Issuance Time
  */
 
 const { chromium } = require('playwright');
@@ -40,10 +43,23 @@ function formatDate(raw) {
   return m ? m[1] : s;
 }
 
-function parseDateForSort(dateStr) {
+function formatTime(raw) {
+  if (!raw) return '';
+  const s = raw.trim();
+  // "DD/MM/YYYY HH:MM:SS" → "HH:MM:SS"
+  const m = s.match(/(\d{2}:\d{2}:\d{2})$/);
+  return m ? m[1] : '';
+}
+
+function parseDateTimeForSort(dateStr, timeStr) {
   if (!dateStr) return new Date(0);
   const [d, mo, y] = dateStr.split('/').map(Number);
-  return new Date(y, mo - 1, d);
+  let h = 0, min = 0, sec = 0;
+  if (timeStr) {
+    const tp = timeStr.split(':').map(Number);
+    h = tp[0] || 0; min = tp[1] || 0; sec = tp[2] || 0;
+  }
+  return new Date(y, mo - 1, d, h, min, sec);
 }
 
 /**
@@ -71,6 +87,10 @@ function loadExistingCsv() {
     const cols = parseCsvLine(line);
     const row = {};
     headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+    // Migrate legacy 'Company Name' field
+    if (!row['Contractor Name'] && row['Company Name']) {
+      row['Contractor Name'] = row['Company Name'];
+    }
     const tc = row['Tax Code'];
     if (tc) {
       existingMap.set(tc, row);
@@ -102,20 +122,20 @@ function parseCsvLine(line) {
 }
 
 function saveCsv(records) {
-  // Sort by Issuance Date asc, then by original order
+  // Sort by Issuance Date+Time asc, then by original order
   records.sort((a, b) => {
-    const timeA = parseDateForSort(a['Issuance Date']).getTime();
-    const timeB = parseDateForSort(b['Issuance Date']).getTime();
+    const timeA = parseDateTimeForSort(a['Issuance Date'], a['Issuance Time']).getTime();
+    const timeB = parseDateTimeForSort(b['Issuance Date'], b['Issuance Time']).getTime();
     if (timeA !== timeB) return timeA - timeB;
     return (a._orderIdx || 0) - (b._orderIdx || 0);
   });
   // Re-number
-  records.forEach((r, i) => { 
-    r['No.'] = String(i + 1); 
+  records.forEach((r, i) => {
+    r['No.'] = String(i + 1);
     delete r._orderIdx;
   });
 
-  const headers = ['No.', 'Tax Code', 'Company Name', 'Issuance Date'];
+  const headers = ['No.', 'Tax Code', 'Contractor Name', 'Issuance Date', 'Issuance Time'];
   const escapeField = (v) => {
     const s = String(v ?? '');
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -138,8 +158,9 @@ function convertCsvToJson(records) {
   const out = records.map(r => ({
     'No.': r['No.'],
     'Tax Code': r['Tax Code'],
-    'Company Name': r['Company Name'],
+    'Contractor Name': r['Contractor Name'],
     'Issuance Date': r['Issuance Date'],
+    'Issuance Time': r['Issuance Time'] || '',
   }));
   fs.writeFileSync(JSON_FILE, JSON.stringify(out, null, 2), 'utf-8');
   log(`   💾 Đã xuất JSON → ${JSON_FILE}`);
@@ -323,8 +344,9 @@ async function crawlAllContractors(page) {
       finalMap.set(row['Tax Code'], {
         'No.': '',
         'Tax Code': row['Tax Code'],
-        'Company Name': row['Company Name'],
+        'Contractor Name': row['Contractor Name'],
         'Issuance Date': row['Issuance Date'],
+        'Issuance Time': row['Issuance Time'] || '',
         _orderIdx: parseInt(row['No.'], 10) || 0
       });
     }
@@ -334,17 +356,18 @@ async function crawlAllContractors(page) {
     allContractors.forEach((c, index) => {
       const existing = finalMap.get(c.mst);
       if (existing) {
-        if (existing['Company Name'] !== c.ten) {
-          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Company Name']}" → "${c.ten}"`);
-          existing['Company Name'] = c.ten;
+        if (existing['Contractor Name'] !== c.ten) {
+          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Contractor Name']}" → "${c.ten}"`);
+          existing['Contractor Name'] = c.ten;
           updatedCount++;
         }
       } else {
         finalMap.set(c.mst, {
           'No.': '',
           'Tax Code': c.mst,
-          'Company Name': c.ten,
+          'Contractor Name': c.ten,
           'Issuance Date': formatDate(c.thoigian),
+          'Issuance Time': formatTime(c.thoigian),
           _orderIdx: 1000000 + (N - index)
         });
         newCount++;
@@ -357,13 +380,13 @@ async function crawlAllContractors(page) {
   } else {
     // APPEND
     for (const row of existingRows) {
-      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Company Name': row['Company Name'], 'Issuance Date': row['Issuance Date'], _orderIdx: parseInt(row['No.'], 10) || 0 });
+      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Contractor Name': row['Contractor Name'], 'Issuance Date': row['Issuance Date'], 'Issuance Time': row['Issuance Time'] || '', _orderIdx: parseInt(row['No.'], 10) || 0 });
     }
     let newCount = 0, skipCount = 0;
     const N = allContractors.length;
     allContractors.forEach((c, index) => {
       if (existingMap.has(c.mst)) { skipCount++; return; }
-      records.push({ 'No.': '', 'Tax Code': c.mst, 'Company Name': c.ten, 'Issuance Date': formatDate(c.thoigian), _orderIdx: 1000000 + (N - index) });
+      records.push({ 'No.': '', 'Tax Code': c.mst, 'Contractor Name': c.ten, 'Issuance Date': formatDate(c.thoigian), 'Issuance Time': formatTime(c.thoigian), _orderIdx: 1000000 + (N - index) });
       existingMap.set(c.mst, true);
       newCount++;
     });

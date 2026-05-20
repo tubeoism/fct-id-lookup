@@ -3,24 +3,26 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // ─── Enforce Dark Mode ────────────────────────────────────────────────────
+  document.documentElement.setAttribute('data-theme', 'dark');
+
   // ─── DOM Elements ──────────────────────────────────────────────────────────
   const els = {
     themeBtn: document.getElementById('theme-toggle-btn'),
-    clockTime: document.getElementById('clock-time'),
-    
+
     // Stats
     statTotal: document.getElementById('stat-total-val'),
     statYear: document.getElementById('stat-year-val'),
     statCurrentYear: document.getElementById('stat-current-year'),
     statUpdated: document.getElementById('stat-updated-val'),
-    
+
     // Search & Filter
     searchInput: document.getElementById('search-input'),
     searchClearBtn: document.getElementById('search-clear-btn'),
     resultsCount: document.getElementById('results-count'),
     typeSelect: document.getElementById('type-select'),
     sortSelect: document.getElementById('sort-select'),
-    
+
     // Table & Pagination
     tableBody: document.getElementById('contractor-body'),
     pagBar: document.getElementById('pagination-bar'),
@@ -29,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pagPages: document.getElementById('pag-pages'),
     pagInfo: document.getElementById('pag-info'),
     thSortables: document.querySelectorAll('th[data-sort]'),
-    
+
     footerYear: document.getElementById('footer-year')
   };
 
@@ -38,70 +40,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let filteredData = [];
   let currentPage = 1;
   const pageSize = 50;
-  
-  let currentSort = { key: 'no', dir: 'asc' }; // keys: no, tax, name, date
+
+  // Default: sort by date ascending (oldest first, matching original data order)
+  let currentSort = { key: 'date', dir: 'asc' };
 
   // ─── Init ─────────────────────────────────────────────────────────────────
-  initTheme();
-  startClock();
-  
   const currentYear = new Date().getFullYear();
   els.footerYear.textContent = currentYear;
   els.statCurrentYear.textContent = currentYear;
-  
+
   fetchContractors();
   setupEventListeners();
 
-  // ─── Theme Management ─────────────────────────────────────────────────────
-  function initTheme() {
-    const manualTheme = localStorage.getItem('manual-theme');
-    if (manualTheme) {
-      setTheme(manualTheme);
-    } else {
-      checkAutoTheme();
-      // Check periodically
-      setInterval(checkAutoTheme, 60000);
-    }
-  }
-
-  function checkAutoTheme() {
-    if (localStorage.getItem('manual-theme')) return; // Ignore if user set manually
-    const hour = new Date().getHours();
-    // Dark mode between 7 PM (19) and 6 AM (6)
-    const shouldBeDark = (hour >= 19 || hour < 6);
-    setTheme(shouldBeDark ? 'dark' : 'light');
-  }
-
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-
-  els.themeBtn.addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const newTheme = isDark ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('manual-theme', newTheme);
-    showToast(`Đã chuyển sang giao diện ${newTheme === 'dark' ? 'tối' : 'sáng'}`, 'info');
-  });
-
-  // ─── Clock ────────────────────────────────────────────────────────────────
-  function startClock() {
-    const tick = () => {
-      els.clockTime.textContent = new Date().toLocaleTimeString('vi-VN');
-    };
-    tick();
-    setInterval(tick, 1000);
+  // ─── Theme Toggle (still kept for manual use, no toast) ───────────────────
+  if (els.themeBtn) {
+    els.themeBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    });
   }
 
   // ─── Data Fetching & Stats ────────────────────────────────────────────────
   async function fetchContractors() {
     setLoading(true);
     try {
-      // Fetch directly from the static JSON file
       const res = await fetch('registered_contractors.json');
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       contractors = await res.json();
-      
+
       calculateStats();
       applyFilters();
     } catch (err) {
@@ -123,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function calculateStats() {
     const total = contractors.length;
     els.statTotal.textContent = formatNumber(total);
-    
+
     const currentYear = new Date().getFullYear();
     const newThisYear = contractors.filter(c => {
       if (!c['Issuance Date']) return false;
@@ -131,22 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (parts.length !== 3) return false;
       return parseInt(parts[2], 10) === currentYear;
     }).length;
-    
+
     els.statYear.textContent = formatNumber(newThisYear);
-    
-    // In a pure static environment, we don't have file modification time from the API.
-    // We can infer the last updated date by finding the newest 'Issuance Date' in the data.
-    let newestDate = 0;
+
+    // Find newest record by date+time
+    let newestTs = 0;
     contractors.forEach(c => {
-        const ts = parseDateForSort(c['Issuance Date']);
-        if (ts > newestDate) newestDate = ts;
+      const ts = parseDateTimeForSort(c['Issuance Date'], c['Issuance Time']);
+      if (ts > newestTs) newestTs = ts;
     });
-    
-    if (newestDate > 0) {
-        const d = new Date(newestDate);
-        els.statUpdated.textContent = d.toLocaleDateString('vi-VN');
+
+    if (newestTs > 0) {
+      els.statUpdated.textContent = new Date(newestTs).toLocaleDateString('vi-VN');
     } else {
-        els.statUpdated.textContent = 'Chưa có';
+      els.statUpdated.textContent = 'Chưa có';
     }
   }
 
@@ -154,49 +118,46 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyFilters() {
     const term = els.searchInput.value.toLowerCase().trim();
     const typeFilter = els.typeSelect.value;
-    
+
     filteredData = contractors.filter(c => {
-      const name = (c['Company Name'] || '').toLowerCase();
+      const name = (c['Contractor Name'] || '').toLowerCase();
       const tax = (c['Tax Code'] || '').toLowerCase();
-      
-      // Filter by type
+
       if (typeFilter === 'company' && !tax.startsWith('9')) return false;
       if (typeFilter === 'individual' && !tax.startsWith('8')) return false;
-      
-      // Filter by term
+
       if (term) {
         return name.includes(term) || tax.includes(term);
       }
       return true;
     });
-    
+
     els.resultsCount.textContent = `Hiển thị ${formatNumber(filteredData.length)} kết quả`;
-    
+
     // Sort
     filteredData.sort((a, b) => {
       let valA, valB;
       switch (currentSort.key) {
-        case 'no':
-          valA = parseInt(a['No.'] || 0, 10);
-          valB = parseInt(b['No.'] || 0, 10);
-          return currentSort.dir === 'asc' ? valA - valB : valB - valA;
         case 'tax':
           valA = a['Tax Code'] || '';
           valB = b['Tax Code'] || '';
           return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case 'name':
-          valA = a['Company Name'] || '';
-          valB = b['Company Name'] || '';
+          valA = a['Contractor Name'] || '';
+          valB = b['Contractor Name'] || '';
           return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case 'date':
-          valA = parseDateForSort(a['Issuance Date']);
-          valB = parseDateForSort(b['Issuance Date']);
-          if (valA === valB) {
-            const noA = parseInt(a['No.'] || 0, 10);
-            const noB = parseInt(b['No.'] || 0, 10);
-            return currentSort.dir === 'asc' ? noA - noB : noB - noA;
+        default: {
+          valA = parseDateTimeForSort(a['Issuance Date'], a['Issuance Time']);
+          valB = parseDateTimeForSort(b['Issuance Date'], b['Issuance Time']);
+          if (valA !== valB) {
+            return currentSort.dir === 'asc' ? valA - valB : valB - valA;
           }
-          return currentSort.dir === 'asc' ? valA - valB : valB - valA;
+          // Tie-break by original No. to keep stable order
+          const noA = parseInt(a['No.'] || 0, 10);
+          const noB = parseInt(b['No.'] || 0, 10);
+          return noA - noB;
+        }
       }
     });
 
@@ -204,11 +165,24 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
   }
 
-  function parseDateForSort(dateStr) {
+  /**
+   * Parse date "DD/MM/YYYY" and optional time "HH:MM:SS" into a timestamp.
+   * Falls back gracefully if time is absent.
+   */
+  function parseDateTimeForSort(dateStr, timeStr) {
     if (!dateStr) return 0;
     const parts = dateStr.split('/');
     if (parts.length !== 3) return 0;
-    return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+    const [d, mo, y] = parts.map(Number);
+
+    let h = 0, min = 0, s = 0;
+    if (timeStr) {
+      const tp = timeStr.split(':').map(Number);
+      h = tp[0] || 0;
+      min = tp[1] || 0;
+      s = tp[2] || 0;
+    }
+    return new Date(y, mo - 1, d, h, min, s).getTime();
   }
 
   function renderTable() {
@@ -227,17 +201,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalPages = Math.ceil(filteredData.length / pageSize);
     if (currentPage > totalPages) currentPage = totalPages;
-    
+
     const startIdx = (currentPage - 1) * pageSize;
     const endIdx = Math.min(startIdx + pageSize, filteredData.length);
-    
+
     const pageData = filteredData.slice(startIdx, endIdx);
-    
-    els.tableBody.innerHTML = pageData.map(c => `
+
+    // STT always shows sequential row number in current filtered+sorted result
+    els.tableBody.innerHTML = pageData.map((c, i) => `
       <tr>
-        <td class="col-no" data-label="STT">${c['No.'] || '-'}</td>
+        <td class="col-no" data-label="STT">${startIdx + i + 1}</td>
         <td class="col-tax" data-label="Mã số thuế">${c['Tax Code'] || '-'}</td>
-        <td class="col-name" data-label="Tên công ty">${c['Company Name'] || '-'}</td>
+        <td class="col-name" data-label="Tên nhà thầu">${c['Contractor Name'] || '-'}</td>
         <td class="col-date" data-label="Ngày cấp">${c['Issuance Date'] || '-'}</td>
       </tr>
     `).join('');
@@ -250,29 +225,29 @@ document.addEventListener('DOMContentLoaded', () => {
       els.pagBar.hidden = true;
       return;
     }
-    
+
     els.pagBar.hidden = false;
     els.pagPrev.disabled = currentPage === 1;
     els.pagNext.disabled = currentPage === totalPages;
-    
+
     els.pagInfo.textContent = `${startIdx + 1} - ${endIdx} / ${filteredData.length}`;
-    
+
     // Page buttons logic (max 5 buttons)
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, startPage + 4);
     if (endPage - startPage < 4) {
       startPage = Math.max(1, endPage - 4);
     }
-    
+
     let html = '';
     if (startPage > 1) html += `<button class="pag-page-btn" data-page="1">1</button>${startPage > 2 ? '<span style="opacity:0.5">...</span>' : ''}`;
-    
+
     for (let i = startPage; i <= endPage; i++) {
       html += `<button class="pag-page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
     }
-    
+
     if (endPage < totalPages) html += `${endPage < totalPages - 1 ? '<span style="opacity:0.5">...</span>' : ''}<button class="pag-page-btn" data-page="${totalPages}">${totalPages}</button>`;
-    
+
     els.pagPages.innerHTML = html;
   }
 
@@ -283,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     els.searchInput.addEventListener('input', () => {
       els.searchClearBtn.hidden = els.searchInput.value.length === 0;
       clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(applyFilters, 300); // debounce
+      searchTimeout = setTimeout(applyFilters, 300);
     });
 
     els.searchClearBtn.addEventListener('click', () => {
@@ -315,7 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
           currentSort = { key, dir: 'asc' };
         }
         // Sync with mobile select
-        els.sortSelect.value = `${currentSort.key}-${currentSort.dir}`;
+        const selectVal = `${currentSort.key}-${currentSort.dir}`;
+        if (els.sortSelect.querySelector(`option[value="${selectVal}"]`)) {
+          els.sortSelect.value = selectVal;
+        }
         updateTableHeaderSortUI();
         applyFilters();
       });
@@ -325,12 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
     els.pagPrev.addEventListener('click', () => {
       if (currentPage > 1) { currentPage--; renderTable(); }
     });
-    
+
     els.pagNext.addEventListener('click', () => {
       const max = Math.ceil(filteredData.length / pageSize);
       if (currentPage < max) { currentPage++; renderTable(); }
     });
-    
+
     els.pagPages.addEventListener('click', (e) => {
       if (e.target.classList.contains('pag-page-btn')) {
         currentPage = parseInt(e.target.dataset.page, 10);
@@ -382,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
+
     let icon = 'info';
     if (type === 'success') icon = 'check_circle';
     if (type === 'error') icon = 'error';
@@ -391,9 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="material-symbols-rounded">${icon}</span>
       <span>${escapeHtml(message)}</span>
     `;
-    
+
     container.appendChild(toast);
-    
+
     setTimeout(() => {
       toast.classList.add('hiding');
       toast.addEventListener('animationend', () => toast.remove());

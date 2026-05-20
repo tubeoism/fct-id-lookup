@@ -180,17 +180,6 @@ input, select {
   gap: 16px;
 }
 
-.clock-display {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  background: var(--bg-surface-variant);
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-}
 
 .icon-btn {
   width: 40px;

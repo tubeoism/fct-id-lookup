@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" data-theme="light">
+<html lang="vi" data-theme="dark">
 
 <head>
   <meta charset="UTF-8" />
@@ -30,10 +30,6 @@
         </div>
       </div>
       <div class="app-bar-actions">
-        <div class="clock-display" id="clock-display">
-          <span class="material-symbols-rounded" style="font-size:18px;opacity:0.7">schedule</span>
-          <span id="clock-time">--:--:--</span>
-        </div>
         <button class="icon-btn theme-toggle" id="theme-toggle-btn" title="Chuyển đổi chủ đề sáng/tối"
           aria-label="Toggle dark mode">
           <span class="material-symbols-rounded icon-sun">light_mode</span>
@@ -98,12 +94,12 @@
           </select>
           <label for="sort-select" class="sort-label">Sắp xếp:</label>
           <select id="sort-select" class="sort-select">
-            <option value="no-asc">STT ↑</option>
-            <option value="no-desc">STT ↓</option>
+            <option value="date-asc">Cũ nhất</option>
+            <option value="date-desc">Mới nhất</option>
             <option value="name-asc">Tên A→Z</option>
             <option value="name-desc">Tên Z→A</option>
-            <option value="date-desc">Mới nhất</option>
-            <option value="date-asc">Cũ nhất</option>
+            <option value="tax-asc">MST A→Z</option>
+            <option value="tax-desc">MST Z→A</option>
           </select>
         </div>
       </div>
@@ -115,16 +111,15 @@
         <table class="data-table" id="contractor-table" aria-label="Danh sách nhà thầu nước ngoài">
           <thead>
             <tr>
-              <th class="col-no" data-sort="no">
+              <th class="col-no">
                 <span>STT</span>
-                <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
               <th class="col-tax" data-sort="tax">
                 <span>Mã số thuế</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
               <th class="col-name" data-sort="name">
-                <span>Tên công ty</span>
+                <span>Tên nhà thầu</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
               <th class="col-date" data-sort="date">
