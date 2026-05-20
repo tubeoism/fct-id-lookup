@@ -356,9 +356,27 @@ async function crawlAllContractors(page) {
     allContractors.forEach((c, index) => {
       const existing = finalMap.get(c.mst);
       if (existing) {
-        if (existing['Contractor Name'] !== c.ten) {
-          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Contractor Name']}" → "${c.ten}"`);
-          existing['Contractor Name'] = c.ten;
+        let changed = false;
+        const newName = c.ten;
+        const newDate = formatDate(c.thoigian);
+        const newTime = formatTime(c.thoigian);
+
+        if (existing['Contractor Name'] !== newName) {
+          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Contractor Name']}" → "${newName}"`);
+          existing['Contractor Name'] = newName;
+          changed = true;
+        }
+        if (existing['Issuance Date'] !== newDate) {
+          log(`   📅 Cập nhật Ngày cấp: ${c.mst} | "${existing['Issuance Date']}" → "${newDate}"`);
+          existing['Issuance Date'] = newDate;
+          changed = true;
+        }
+        if (existing['Issuance Time'] !== newTime) {
+          log(`   ⏰ Cập nhật Giờ cấp: ${c.mst} | "${existing['Issuance Time'] || '(trống)'}" → "${newTime}"`);
+          existing['Issuance Time'] = newTime;
+          changed = true;
+        }
+        if (changed) {
           updatedCount++;
         }
       } else {
