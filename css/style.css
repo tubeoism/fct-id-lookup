@@ -471,7 +471,7 @@ input, select {
 }
 
 .col-no { width: 5%; text-align: center; }
-.col-tax { width: 15%; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+.col-tax { width: 15%; font-weight: 500; }
 .col-name { width: 60%; font-weight: 500; }
 .col-date { width: 20%; color: var(--text-muted); }
 
