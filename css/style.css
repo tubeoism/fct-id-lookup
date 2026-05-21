@@ -24,9 +24,6 @@
   --warning-color: hsl(40, 90%, 45%);
   --warning-bg: hsl(40, 90%, 95%);
 
-  --info-color: hsl(200, 70%, 45%);
-  --info-bg: hsl(200, 70%, 95%);
-
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
@@ -55,9 +52,6 @@
 
   --warning-color: hsl(40, 90%, 60%);
   --warning-bg: hsl(40, 90%, 20%);
-
-  --info-color: hsl(200, 70%, 60%);
-  --info-bg: hsl(200, 70%, 20%);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
@@ -258,7 +252,7 @@ input, select {
   gap: 16px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  transition: all var(--transition-normal);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
 }
 
 .stat-card:hover {
@@ -335,7 +329,7 @@ input, select {
   border-radius: var(--radius-full);
   color: var(--text-main);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .search-input:focus {
@@ -611,6 +605,8 @@ input, select {
   right: 24px;
 }
 
+
+.pag-ellipsis { opacity: 0.5; display: inline-block; padding: 0 4px; }
 
 /* Footer */
 .app-footer {

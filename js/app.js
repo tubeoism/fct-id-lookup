@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Theme Helper (GMT+7 Auto-switching) ──────────────────────────────────
   function applyAutoTheme() {
     const manualTheme = localStorage.getItem('fct_manual_theme');
-    if (manualTheme) {
+    if (manualTheme === 'dark' || manualTheme === 'light') {
       document.documentElement.setAttribute('data-theme', manualTheme);
       return;
     }
@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_next: "Trang sau",
       footer_source: "Nguồn dữ liệu:",
       toggle_lang_title: "Chuyển sang tiếng Anh",
+      theme_btn_label: "Chuyển đổi giao diện sáng/tối",
       footer_data_link: "eTax VN – Cục Thuế"
     },
     en: {
@@ -124,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pag_next: "Next Page",
       footer_source: "Data Source:",
       toggle_lang_title: "Switch to Vietnamese",
+      theme_btn_label: "Toggle dark/light mode",
       footer_data_link: "eTax VN – Tax Department"
     }
   };
@@ -175,6 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (els.langBtn) {
       els.langBtn.setAttribute('aria-label', currentLang === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt');
+    }
+    if (els.themeBtn) {
+      els.themeBtn.setAttribute('aria-label', t('theme_btn_label'));
     }
 
     if (contractors.length > 0) {
@@ -391,13 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let html = '';
-    if (startPage > 1) html += `<button class="pag-page-btn" data-page="1">1</button>${startPage > 2 ? '<span style="opacity:0.5">...</span>' : ''}`;
+    if (startPage > 1) html += `<button class="pag-page-btn" data-page="1">1</button>${startPage > 2 ? '<span class="pag-ellipsis">...</span>' : ''}`;
 
     for (let i = startPage; i <= endPage; i++) {
       html += `<button class="pag-page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
     }
 
-    if (endPage < totalPages) html += `${endPage < totalPages - 1 ? '<span style="opacity:0.5">...</span>' : ''}<button class="pag-page-btn" data-page="${totalPages}">${totalPages}</button>`;
+    if (endPage < totalPages) html += `${endPage < totalPages - 1 ? '<span class="pag-ellipsis">...</span>' : ''}<button class="pag-page-btn" data-page="${totalPages}">${totalPages}</button>`;
 
     els.pagPages.innerHTML = html;
   }
@@ -498,8 +503,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Cache Intl.NumberFormat per locale to avoid recreating on every call
+  const _numberFormatters = {};
   function formatNumber(num) {
-    return new Intl.NumberFormat(currentLang === 'vi' ? 'vi-VN' : 'en-US').format(num);
+    const locale = currentLang === 'vi' ? 'vi-VN' : 'en-US';
+    if (!_numberFormatters[locale]) {
+      _numberFormatters[locale] = new Intl.NumberFormat(locale);
+    }
+    return _numberFormatters[locale].format(num);
   }
 
   function escapeHtml(unsafe) {
