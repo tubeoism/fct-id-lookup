@@ -57,13 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Translations & State ──────────────────────────────────────────────────
   const translations = {
     vi: {
-      app_title: "Tra cứu MST nhà thầu nước ngoài",
+      app_title: "Tra cứu MST nhà cung cấp nước ngoài",
       app_subtitle: "eTax VN – Cục Thuế",
-      stat_total_label: "Số lượng nhà thầu đã cấp mã",
+      stat_total_label: "Số lượng nhà cung cấp đã cấp mã",
       stat_year_label: "Cấp mới trong năm ",
       stat_updated_label: "Thông tin cấp mới nhất",
       stat_none: "Chưa có",
-      search_placeholder: "Tìm theo tên nhà thầu hoặc mã số thuế...",
+      search_placeholder: "Tìm theo tên nhà cung cấp hoặc mã số thuế...",
       search_clear: "Xóa tìm kiếm",
       label_type: "Loại:",
       label_sort: "Sắp xếp:",
@@ -80,11 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
       results_loading: "Đang tải...",
       th_no: "STT",
       th_tax: "Mã số thuế",
-      th_name: "Tên nhà thầu",
+      th_name: "Tên nhà cung cấp",
       th_date: "Ngày cấp",
       empty_no_match: "Không tìm thấy kết quả phù hợp",
       empty_error: "Không thể tải dữ liệu. Vui lòng kiểm tra lại file 'registered_contractors.json'.",
-      err_load: "Không thể tải dữ liệu nhà thầu",
+      err_load: "Không thể tải dữ liệu nhà cung cấp",
       pag_prev: "Trang trước",
       pag_next: "Trang sau",
       footer_source: "Nguồn dữ liệu:",
@@ -92,13 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
       footer_data_link: "eTax VN – Cục Thuế"
     },
     en: {
-      app_title: "Foreign Contractor Tax Code Lookup",
+      app_title: "Foreign Provider Tax Code Lookup",
       app_subtitle: "eTax VN – Tax Department",
-      stat_total_label: "Total Registered Contractors",
+      stat_total_label: "Total Registered Providers",
       stat_year_label: "Newly Registered in ",
       stat_updated_label: "Latest Registration Info",
       stat_none: "N/A",
-      search_placeholder: "Search by contractor name or tax code...",
+      search_placeholder: "Search by provider name or tax code...",
       search_clear: "Clear search",
       label_type: "Type:",
       label_sort: "Sort:",
@@ -115,11 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
       results_loading: "Loading...",
       th_no: "No.",
       th_tax: "Tax Code",
-      th_name: "Contractor Name",
+      th_name: "Provider Name",
       th_date: "Issuance Date",
       empty_no_match: "No matching results found",
       empty_error: "Unable to load data. Please check 'registered_contractors.json'.",
-      err_load: "Failed to load contractor data",
+      err_load: "Failed to load provider data",
       pag_prev: "Previous Page",
       pag_next: "Next Page",
       footer_source: "Data Source:",
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const typeFilter = els.typeSelect.value;
 
     filteredData = contractors.filter(c => {
-      const name = (c['Contractor Name'] || '').toLowerCase();
+      const name = (c['Provider Name'] || '').toLowerCase();
       const tax = (c['Tax Code'] || '').toLowerCase();
 
       if (typeFilter === 'company' && !tax.startsWith('9')) return false;
@@ -294,8 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
           valB = b['Tax Code'] || '';
           return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case 'name':
-          valA = a['Contractor Name'] || '';
-          valB = b['Contractor Name'] || '';
+          valA = a['Provider Name'] || '';
+          valB = b['Provider Name'] || '';
           return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case 'date':
         default: {
@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <tr>
         <td class="col-no" data-label="${t('th_no')}">${startIdx + i + 1}</td>
         <td class="col-tax" data-label="${t('th_tax')}">${escapeHtml(c['Tax Code'] || '-')}</td>
-        <td class="col-name" data-label="${t('th_name')}">${escapeHtml(c['Contractor Name'] || '-')}</td>
+        <td class="col-name" data-label="${t('th_name')}">${escapeHtml(c['Provider Name'] || '-')}</td>
         <td class="col-date" data-label="${t('th_date')}">${escapeHtml(c['Issuance Date'] || '-')}</td>
       </tr>
     `).join('');

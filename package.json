@@ -1,7 +1,7 @@
 {
   "name": "fct-id-lookup",
-  "version": "2.0.0",
-  "description": "Tra cứu danh sách nhà thầu nước ngoài đã đăng ký MST tại Việt Nam",
+  "version": "2.2.0",
+  "description": "Tra cứu danh sách nhà cung cấp nước ngoài đã đăng ký MST tại Việt Nam",
   "scripts": {
     "crawl": "node crawler.js",
     "crawl:full": "node crawler.js --full"

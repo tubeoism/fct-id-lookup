@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 /**
- * crawler.js – Thu thập danh sách nhà thầu nước ngoài từ eTax Vietnam
+ * crawler.js – Thu thập danh sách nhà cung cấp nước ngoài từ eTax Vietnam
  * Port sang Node.js từ etax_crawler_v2.py
  *
  * Sử dụng: node crawler.js [--append | --full]
- *   --append  (mặc định): Chỉ bổ sung nhà thầu mới, giữ nguyên dữ liệu cũ
+ *   --append  (mặc định): Chỉ bổ sung nhà cung cấp mới, giữ nguyên dữ liệu cũ
  *   --full:               Cập nhật toàn bộ (ghi đè, cập nhật tên nếu đổi)
  *
  * Output:
- *   registered_contractors.csv   — Danh sách nhà thầu (CSV)
+ *   registered_contractors.csv   — Danh sách nhà cung cấp (CSV)
  *   registered_contractors.json  — Bản sao JSON
  *
  * Fields:
- *   No., Tax Code, Contractor Name, Issuance Date, Issuance Time
+ *   No., Tax Code, Provider Name, Issuance Date, Issuance Time
  */
 
 const { chromium } = require('playwright');
@@ -88,8 +88,11 @@ function loadExistingCsv() {
     const row = {};
     headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
     // Migrate legacy 'Company Name' field
-    if (!row['Contractor Name'] && row['Company Name']) {
-      row['Contractor Name'] = row['Company Name'];
+    if (!row['Provider Name'] && row['Contractor Name']) {
+      row['Provider Name'] = row['Contractor Name'];
+    }
+    if (!row['Provider Name'] && row['Company Name']) {
+      row['Provider Name'] = row['Company Name'];
     }
     const tc = row['Tax Code'];
     if (tc) {
@@ -98,7 +101,7 @@ function loadExistingCsv() {
     }
   }
 
-  log(`   📋 File CSV hiện có: ${existingMap.size} nhà thầu.`);
+  log(`   📋 File CSV hiện có: ${existingMap.size} nhà cung cấp.`);
   return { existingMap, rows };
 }
 
@@ -135,7 +138,7 @@ function saveCsv(records) {
     delete r._orderIdx;
   });
 
-  const headers = ['No.', 'Tax Code', 'Contractor Name', 'Issuance Date', 'Issuance Time'];
+  const headers = ['No.', 'Tax Code', 'Provider Name', 'Issuance Date', 'Issuance Time'];
   const escapeField = (v) => {
     const s = String(v ?? '');
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -151,14 +154,14 @@ function saveCsv(records) {
 
   // Write with UTF-8 BOM for Excel compatibility
   fs.writeFileSync(CSV_FILE, '\uFEFF' + lines.join('\r\n'), 'utf-8');
-  log(`   💾 Đã lưu ${records.length} nhà thầu → ${CSV_FILE}`);
+  log(`   💾 Đã lưu ${records.length} nhà cung cấp → ${CSV_FILE}`);
 }
 
 function convertCsvToJson(records) {
   const out = records.map(r => ({
     'No.': r['No.'],
     'Tax Code': r['Tax Code'],
-    'Contractor Name': r['Contractor Name'],
+    'Provider Name': r['Provider Name'],
     'Issuance Date': r['Issuance Date'],
     'Issuance Time': r['Issuance Time'] || '',
   }));
@@ -230,7 +233,7 @@ async function crawlAllContractors(page) {
   await page.waitForTimeout(3000);
   log('   ✓ Trang chủ đã tải xong');
 
-  log('[2/4] Đang mở trang tra cứu nhà thầu...');
+  log('[2/4] Đang mở trang tra cứu nhà cung cấp...');
   const link = page.locator('a[href*="corpTCuuTTinMSTProc"][target="mainframe"]').first();
   if (await link.count() > 0) {
     await link.click();
@@ -248,7 +251,7 @@ async function crawlAllContractors(page) {
   log('   ✓ Đã truy cập iframe');
   await page.waitForTimeout(3000);
 
-  log('[3/4] Đang tìm kiếm toàn bộ nhà thầu...');
+  log('[3/4] Đang tìm kiếm toàn bộ nhà cung cấp...');
   const searchSelectors = [
     'input[value*="Search"]', 'input[value*="Tra cứu"]',
     'a:has-text("Search")', 'a:has-text("Tra cứu")',
@@ -276,7 +279,7 @@ async function crawlAllContractors(page) {
   const page1 = await extractTableData(iframe);
   const totalPages = await getPaginationInfo(iframe);
   log(`   Tổng số trang: ${totalPages}`);
-  log(`   Trang 1: ${page1.length} nhà thầu`);
+  log(`   Trang 1: ${page1.length} nhà cung cấp`);
   allData.push(...page1);
 
   for (let pg = 2; pg <= totalPages; pg++) {
@@ -287,21 +290,21 @@ async function crawlAllContractors(page) {
       await page.waitForTimeout(4000);
       iframe = getIframe(page);
       const pgData = await extractTableData(iframe);
-      log(`   Trang ${pg}: ${pgData.length} nhà thầu`);
+      log(`   Trang ${pg}: ${pgData.length} nhà cung cấp`);
       allData.push(...pgData);
     } else {
       log(`   ⚠ Không thể chuyển đến trang ${pg}`);
     }
   }
 
-  log(`\n   📊 Tổng thu thập: ${allData.length} nhà thầu`);
+  log(`\n   📊 Tổng thu thập: ${allData.length} nhà cung cấp`);
   return allData;
 }
 
 // ─── Entry Point ──────────────────────────────────────────────────────────────
 (async () => {
   log('='.repeat(65));
-  log('   BOT THU THẬP DANH SÁCH NHÀ THẦU NƯỚC NGOÀI - eTax VN');
+  log('   BOT THU THẬP DANH SÁCH NHÀ CUNG CẤP NƯỚC NGOÀI - eTax VN');
   log(`   Chế độ: ${MODE === 'append' ? 'BỔ SUNG (append)' : 'CẬP NHẬT TOÀN BỘ (full)'}`);
   log('='.repeat(65));
   log('');
@@ -344,7 +347,7 @@ async function crawlAllContractors(page) {
       finalMap.set(row['Tax Code'], {
         'No.': '',
         'Tax Code': row['Tax Code'],
-        'Contractor Name': row['Contractor Name'],
+        'Provider Name': row['Provider Name'],
         'Issuance Date': row['Issuance Date'],
         'Issuance Time': row['Issuance Time'] || '',
         _orderIdx: parseInt(row['No.'], 10) || 0
@@ -361,9 +364,9 @@ async function crawlAllContractors(page) {
         const newDate = formatDate(c.thoigian);
         const newTime = formatTime(c.thoigian);
 
-        if (existing['Contractor Name'] !== newName) {
-          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Contractor Name']}" → "${newName}"`);
-          existing['Contractor Name'] = newName;
+        if (existing['Provider Name'] !== newName) {
+          log(`   🔄 Cập nhật tên: ${c.mst} | "${existing['Provider Name']}" → "${newName}"`);
+          existing['Provider Name'] = newName;
           changed = true;
         }
         if (existing['Issuance Date'] !== newDate) {
@@ -383,7 +386,7 @@ async function crawlAllContractors(page) {
         finalMap.set(c.mst, {
           'No.': '',
           'Tax Code': c.mst,
-          'Contractor Name': c.ten,
+          'Provider Name': c.ten,
           'Issuance Date': formatDate(c.thoigian),
           'Issuance Time': formatTime(c.thoigian),
           _orderIdx: 1000000 + (N - index)
@@ -398,17 +401,17 @@ async function crawlAllContractors(page) {
   } else {
     // APPEND
     for (const row of existingRows) {
-      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Contractor Name': row['Contractor Name'], 'Issuance Date': row['Issuance Date'], 'Issuance Time': row['Issuance Time'] || '', _orderIdx: parseInt(row['No.'], 10) || 0 });
+      records.push({ 'No.': '', 'Tax Code': row['Tax Code'], 'Provider Name': row['Provider Name'], 'Issuance Date': row['Issuance Date'], 'Issuance Time': row['Issuance Time'] || '', _orderIdx: parseInt(row['No.'], 10) || 0 });
     }
     let newCount = 0, skipCount = 0;
     const N = allContractors.length;
     allContractors.forEach((c, index) => {
       if (existingMap.has(c.mst)) { skipCount++; return; }
-      records.push({ 'No.': '', 'Tax Code': c.mst, 'Contractor Name': c.ten, 'Issuance Date': formatDate(c.thoigian), 'Issuance Time': formatTime(c.thoigian), _orderIdx: 1000000 + (N - index) });
+      records.push({ 'No.': '', 'Tax Code': c.mst, 'Provider Name': c.ten, 'Issuance Date': formatDate(c.thoigian), 'Issuance Time': formatTime(c.thoigian), _orderIdx: 1000000 + (N - index) });
       existingMap.set(c.mst, true);
       newCount++;
     });
-    log(`   ➕ Nhà thầu mới: ${newCount}`);
+    log(`   ➕ Nhà cung cấp mới: ${newCount}`);
     log(`   ⏭️  Đã tồn tại (bỏ qua): ${skipCount}`);
   }
 

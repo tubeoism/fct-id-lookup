@@ -1,9 +1,9 @@
 # FCT ID Lookup
 
-**Tra cứu danh sách Nhà thầu Nước ngoài đã đăng ký Mã số Thuế tại Việt Nam**
+**Tra cứu danh sách nh\u00e0 cung c\u1ea5p Nước ngoài đã đăng ký Mã số Thuế tại Việt Nam**
 
 Công cụ gồm hai thành phần chính:
-- **Web app tĩnh** – giao diện tra cứu, tìm kiếm và lọc danh sách nhà thầu ngay trên trình duyệt.
+- **Web app tĩnh** – giao diện tra cứu, tìm kiếm và lọc danh sách nh\u00e0 cung c\u1ea5p ngay trên trình duyệt.
 - **Crawler** – bot tự động thu thập dữ liệu từ cổng eTax VN (Cục Thuế) và lưu về dạng CSV + JSON.
 
 ---
@@ -26,7 +26,7 @@ Công cụ gồm hai thành phần chính:
 
 Nguồn dữ liệu: [eTax VN – Cục Thuế](https://etaxvn.gdt.gov.vn/nccnn/Request)
 
-Dự án lấy dữ liệu từ cổng eTax VN, lưu trữ dưới dạng tĩnh (`registered_contractors.json` và `registered_contractors.csv`), và phục vụ tra cứu thông qua một trang HTML thuần – không cần backend hay database.
+Dự án lấy dữ liệu từ cổng eTax VN, lưu trữ dưới dạng tĩnh (`registered_Providers.json` và `registered_Providers.csv`), và phục vụ tra cứu thông qua một trang HTML thuần – không cần backend hay database.
 
 ---
 
@@ -41,8 +41,8 @@ fct-id-lookup/
 │   ├── theme-init.js             # Inline theme detection – chạy trước CSS để tránh FOUC
 │   └── app.js                    # Logic frontend (i18n, tìm kiếm, lọc, phân trang, theme)
 ├── crawler.js                    # Bot thu thập dữ liệu từ eTax VN (Node.js + Playwright)
-├── registered_contractors.json   # Dữ liệu nhà thầu (nguồn chính cho web app)
-├── registered_contractors.csv    # Dữ liệu nhà thầu dạng CSV (Excel-friendly, UTF-8 BOM)
+├── registered_Providers.json   # Dữ liệu nh\u00e0 cung c\u1ea5p (nguồn chính cho web app)
+├── registered_Providers.csv    # Dữ liệu nh\u00e0 cung c\u1ea5p dạng CSV (Excel-friendly, UTF-8 BOM)
 ├── package.json                  # Cấu hình npm & scripts
 └── .github/
     └── workflows/
@@ -70,13 +70,13 @@ Ba thẻ thống kê hiển thị ngay trên đầu trang:
 
 | Thẻ | Nội dung |
 |---|---|
-| **Số lượng nhà thầu đã cấp mã** | Tổng số bản ghi trong danh sách. |
-| **Cấp mới trong năm [năm]** | Số nhà thầu được cấp mã trong năm hiện tại. |
+| **Số lượng nh\u00e0 cung c\u1ea5p đã cấp mã** | Tổng số bản ghi trong danh sách. |
+| **Cấp mới trong năm [năm]** | Số nh\u00e0 cung c\u1ea5p được cấp mã trong năm hiện tại. |
 | **Thông tin cấp mới nhất** | Ngày cấp mã số thuế mới nhất trong dữ liệu. |
 
 ### Tìm kiếm
 
-- Ô tìm kiếm hỗ trợ tìm theo **tên nhà thầu** hoặc **mã số thuế** (không phân biệt hoa/thường).
+- Ô tìm kiếm hỗ trợ tìm theo **tên nh\u00e0 cung c\u1ea5p** hoặc **mã số thuế** (không phân biệt hoa/thường).
 - **Debounce 300ms** – tránh gọi lại quá nhiều khi người dùng gõ nhanh.
 - Nút **Xóa (×)** xuất hiện khi có nội dung trong ô tìm kiếm để xóa nhanh.
 - Số kết quả tìm được hiển thị theo thời gian thực.
@@ -102,7 +102,7 @@ Hỗ trợ sắp xếp theo hai cách:
 |---|---|
 | STT | *Không hỗ trợ sắp xếp (STT luôn hiển thị tăng dần theo danh sách hiển thị)* |
 | Mã số thuế | A→Z / Z→A |
-| Tên nhà thầu | A→Z / Z→A |
+| Tên nh\u00e0 cung c\u1ea5p | A→Z / Z→A |
 | Ngày cấp | Mới nhất / Cũ nhất (sử dụng ngày và giờ cấp - Issuance Time để sắp xếp chính xác thứ tự mới cũ) |
 
 ### Bảng dữ liệu
@@ -112,8 +112,8 @@ Bảng hiển thị 4 cột:
 | Cột | Mô tả |
 |---|---|
 | STT | Số thứ tự hiển thị tuần tự tăng dần (không phục vụ sắp xếp) |
-| Mã số thuế | Mã số thuế FCT của nhà thầu |
-| Tên nhà thầu | Tên nhà thầu nước ngoài |
+| Mã số thuế | Mã số thuế FCT của nh\u00e0 cung c\u1ea5p |
+| Tên nh\u00e0 cung c\u1ea5p | Tên nh\u00e0 cung c\u1ea5p nước ngoài |
 | Ngày cấp | Ngày cấp mã số thuế (định dạng `DD/MM/YYYY`) |
 
 ### Phân trang
@@ -158,13 +158,13 @@ Bot sử dụng **Playwright** (Chromium headless) để điều hướng và th
 
 | Chế độ | Lệnh | Hành vi |
 |---|---|---|
-| **Bổ sung (append)** | `npm run crawl` | Chỉ thêm nhà thầu mới chưa có trong file CSV. Bỏ qua các MST đã tồn tại. |
+| **Bổ sung (append)** | `npm run crawl` | Chỉ thêm nh\u00e0 cung c\u1ea5p mới chưa có trong file CSV. Bỏ qua các MST đã tồn tại. |
 | **Cập nhật toàn bộ (full)** | `npm run crawl:full` | Duyệt toàn bộ danh sách, cập nhật tên nếu thay đổi, thêm mới nếu chưa có. |
 
 ### Quy trình thu thập
 
 1. **Tải trang chủ** eTax VN (`etaxvn.gdt.gov.vn/nccnn/Request`).
-2. **Điều hướng** đến trang tra cứu nhà thầu nước ngoài trong iframe `mainframe`.
+2. **Điều hướng** đến trang tra cứu nh\u00e0 cung c\u1ea5p nước ngoài trong iframe `mainframe`.
 3. **Kích hoạt tìm kiếm** – thử nhiều selector để nhấn nút "Search / Tra cứu".
 4. **Thu thập dữ liệu** – duyệt qua **toàn bộ các trang kết quả** (pagination), trích xuất `MST`, `Tên`, `Ngày cấp` từ bảng HTML.
 5. **Xử lý & merge** dữ liệu mới với dữ liệu cũ theo chế độ append hoặc full.
@@ -172,7 +172,7 @@ Bot sử dụng **Playwright** (Chromium headless) để điều hướng và th
 
 ### Xử lý dữ liệu
 
-- **Đọc CSV hiện có**: hỗ trợ parse CSV phức tạp (trường có dấu phẩy, nháy kép, xuống dòng) và hỗ trợ cơ chế tự động migrate các dữ liệu cũ có trường `Company Name` sang trường mới `Contractor Name`.
+- **Đọc CSV hiện có**: hỗ trợ parse CSV phức tạp (trường có dấu phẩy, nháy kép, xuống dòng) và hỗ trợ cơ chế tự động migrate các dữ liệu cũ có trường `Company Name` sang trường mới `Provider Name`.
 - **Sắp xếp**: danh sách cuối cùng được sắp xếp theo `Ngày cấp` và `Giờ cấp` (Issuance Time) tăng dần trước khi lưu.
 - **Đánh số lại STT** sau mỗi lần lưu (dữ liệu STT gốc chỉ phục vụ kiểm tra tính toàn vẹn integrity).
 - **Định dạng ngày và giờ**: chuẩn hóa ngày cấp thành `DD/MM/YYYY` và trích xuất giờ cấp thành `HH:MM:SS` lưu vào cột `Issuance Time`.
@@ -188,7 +188,7 @@ File: [`.github/workflows/crawler.yml`](.github/workflows/crawler.yml)
 
 | Lịch | Chế độ |
 |---|---|
-| Hàng ngày lúc **00:00 UTC** (từ ngày 2 đến 31) | `append` – chỉ bổ sung nhà thầu mới |
+| Hàng ngày lúc **00:00 UTC** (từ ngày 2 đến 31) | `append` – chỉ bổ sung nh\u00e0 cung c\u1ea5p mới |
 | Ngày **1 hàng tháng** lúc 00:00 UTC | `full` – cập nhật toàn bộ, đồng bộ tên |
 
 ### Chạy thủ công (workflow_dispatch)
@@ -202,7 +202,7 @@ Có thể kích hoạt thủ công từ tab **Actions** trên GitHub với lựa
 3. Cài Chromium qua `npx playwright install --with-deps chromium`.
 4. Chạy crawler theo lịch/chế độ được chọn.
 5. Kiểm tra thay đổi (`git status`).
-6. Nếu có thay đổi: commit `registered_contractors.json` và `registered_contractors.csv` với message `Auto-update contractors data 🤖` rồi push.
+6. Nếu có thay đổi: commit `registered_Providers.json` và `registered_Providers.csv` với message `Auto-update Providers data 🤖` rồi push.
 
 ---
 
@@ -248,25 +248,25 @@ python -m http.server 8080
 
 ## Định dạng dữ liệu
 
-### `registered_contractors.json`
+### `registered_Providers.json`
 
 ```json
 [
   {
     "No.": "1",
     "Tax Code": "9000000001",
-    "Contractor Name": "ABC Foreign Contractor Co., Ltd.",
+    "Provider Name": "ABC Foreign Provider Co., Ltd.",
     "Issuance Date": "01/01/2020",
     "Issuance Time": "10:30:15"
   }
 ]
 ```
 
-### `registered_contractors.csv`
+### `registered_Providers.csv`
 
 ```csv
-No.,Tax Code,Contractor Name,Issuance Date,Issuance Time
-1,9000000001,"ABC Foreign Contractor Co., Ltd.",01/01/2020,10:30:15
+No.,Tax Code,Provider Name,Issuance Date,Issuance Time
+1,9000000001,"ABC Foreign Provider Co., Ltd.",01/01/2020,10:30:15
 ```
 
 - Encoding: **UTF-8 with BOM** (tương thích Microsoft Excel).

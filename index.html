@@ -7,8 +7,8 @@
     content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; img-src 'self' data:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="Tra cứu danh sách nhà thầu nước ngoài đã đăng ký mã số thuế tại Việt Nam theo quy định Luật Quản lý thuế." />
-  <title>Tra cứu MST nhà thầu nước ngoài</title>
+    content="Tra cứu danh sách nhà cung cấp nước ngoài đã đăng ký mã số thuế tại Việt Nam theo quy định Luật Quản lý thuế." />
+  <title>Tra cứu MST nhà cung cấp nước ngoài</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -28,7 +28,7 @@
       <div class="app-bar-brand">
         <span class="material-symbols-rounded app-bar-icon">search</span>
         <div class="app-bar-title-group">
-          <h1 class="app-bar-title" data-i18n="app_title">Tra cứu MST nhà thầu nước ngoài</h1>
+          <h1 class="app-bar-title" data-i18n="app_title">Tra cứu MST nhà cung cấp nước ngoài</h1>
           <span class="app-bar-subtitle" data-i18n="app_subtitle">eTax VN – Cục Thuế</span>
         </div>
       </div>
@@ -56,7 +56,7 @@
         </div>
         <div class="stat-body">
           <span class="stat-value" id="stat-total-val">–</span>
-          <span class="stat-label" data-i18n="stat_total_label">Số lượng nhà thầu đã cấp mã</span>
+          <span class="stat-label" data-i18n="stat_total_label">Số lượng nhà cung cấp đã cấp mã</span>
         </div>
       </div>
       <div class="stat-card" id="stat-year">
@@ -84,7 +84,7 @@
       <div class="search-field-wrap">
         <span class="material-symbols-rounded search-icon">search</span>
         <input type="search" id="search-input" class="search-input"
-          placeholder="Tìm theo tên nhà thầu hoặc mã số thuế..." autocomplete="off" spellcheck="false" data-i18n-placeholder="search_placeholder" />
+          placeholder="Tìm theo tên nhà cung cấp hoặc mã số thuế..." autocomplete="off" spellcheck="false" data-i18n-placeholder="search_placeholder" />
         <button class="search-clear-btn" id="search-clear-btn" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm"
           hidden>
           <span class="material-symbols-rounded">close</span>
@@ -115,7 +115,7 @@
     <!-- ── Data Table ─────────────────────────────────────────────────────── -->
     <section class="table-section">
       <div class="table-container">
-        <table class="data-table" id="contractor-table" aria-label="Danh sách nhà thầu nước ngoài">
+        <table class="data-table" id="contractor-table" aria-label="Danh sách nhà cung cấp nước ngoài">
           <thead>
             <tr>
               <th class="col-no">
@@ -126,7 +126,7 @@
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
               <th class="col-name" data-sort="name">
-                <span data-i18n="th_name">Tên nhà thầu</span>
+                <span data-i18n="th_name">Tên nhà cung cấp</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
               <th class="col-date" data-sort="date">
@@ -175,7 +175,7 @@
   <!-- ── Toast ──────────────────────────────────────────────────────────────── -->
   <div class="toast-container" id="toast-container" aria-live="assertive"></div>
 
-  <script src="js/app.js?v=2.1.2"></script>
+  <script src="js/app.js?v=2.2.0"></script>
 </body>
 
 </html>
