@@ -1,10 +1,13 @@
 /**
  * theme-init.js – Chạy trước khi CSS được render để ngăn FOUC (Flash of Unstyled Content).
  * Đặt data-theme dựa trên giờ GMT+7 hoặc lựa chọn thủ công đã lưu.
+ * Lựa chọn thủ công dùng sessionStorage: giữ nguyên khi refresh (F5) trong cùng
+ * tab, nhưng bị bỏ qua ở mỗi lần load trang mới (tab mới / phiên mới) để cơ chế
+ * tự động theo giờ được áp dụng lại.
  */
 (function () {
   try {
-    var manual = localStorage.getItem('fct_manual_theme');
+    var manual = sessionStorage.getItem('fct_manual_theme');
     if (manual === 'dark' || manual === 'light') {
       document.documentElement.setAttribute('data-theme', manual);
       return;
