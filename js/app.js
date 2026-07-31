@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const pageSize = 50;
   let currentLang = localStorage.getItem('fct_lang') || 'vi';
 
-  // Default: sort by date ascending (oldest first, matching original data order)
-  let currentSort = { key: 'date', dir: 'asc' };
+  // Default: sort by date descending (newest first)
+  let currentSort = { key: 'date', dir: 'desc' };
 
   // ─── Translation Engine ───────────────────────────────────────────────────
   function t(key, replacements = {}) {
