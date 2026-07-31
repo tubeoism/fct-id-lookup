@@ -57,7 +57,7 @@ fct-id-lookup/
 
 | Tính năng | Mô tả |
 |---|---|
-| **Dark / Light Mode tự động** | Tự động chuyển sang Dark Mode lúc 19:00 và Light Mode lúc 06:00 (GMT+7). Người dùng có thể ghi đè thủ công bằng nút trên thanh tiêu đề – lựa chọn được lưu vào `localStorage`. |
+| **Dark / Light Mode tự động** | Tự động chuyển sang Dark Mode lúc 19:00 và Light Mode lúc 06:00 (GMT+7). Người dùng có thể ghi đè thủ công bằng nút trên thanh tiêu đề – lựa chọn được lưu vào `sessionStorage` nên chỉ tồn tại trong phiên tab hiện tại (giữ nguyên khi refresh, nhưng mỗi lần load trang mới cơ chế tự động theo giờ sẽ được áp dụng lại). |
 | **Chống FOUC** | Script [`theme-init.js`](js/theme-init.js) chạy đồng bộ trong `<head>` trước khi CSS render, đảm bảo theme đúng ngay từ frame đầu tiên mà không có hiện tượng nhấp nháy. |
 | **Đa ngôn ngữ (i18n)** | Hỗ trợ chuyển đổi Tiếng Việt ↔ English qua nút toggle trên thanh tiêu đề. Ngôn ngữ được lưu vào `localStorage` và áp dụng cho toàn bộ giao diện, bao gồm `aria-label`, `placeholder`, `title`, và `document.title`. |
 | **Skeleton loading** | Hiển thị placeholder animation trong khi đang tải dữ liệu JSON. |

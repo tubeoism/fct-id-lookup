@@ -5,7 +5,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ─── Theme Helper (GMT+7 Auto-switching) ──────────────────────────────────
   function applyAutoTheme() {
-    const manualTheme = localStorage.getItem('fct_manual_theme');
+    const manualTheme = sessionStorage.getItem('fct_manual_theme');
     if (manualTheme === 'dark' || manualTheme === 'light') {
       document.documentElement.setAttribute('data-theme', manualTheme);
       return;
@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const pageSize = 50;
   let currentLang = localStorage.getItem('fct_lang') || 'vi';
 
-  // Default: sort by date ascending (oldest first, matching original data order)
-  let currentSort = { key: 'date', dir: 'asc' };
+  // Default: sort by date descending (newest first)
+  let currentSort = { key: 'date', dir: 'desc' };
 
   // ─── Translation Engine ───────────────────────────────────────────────────
   function t(key, replacements = {}) {
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       const newTheme = isDark ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('fct_manual_theme', newTheme);
+      sessionStorage.setItem('fct_manual_theme', newTheme);
     });
   }
 
