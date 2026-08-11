@@ -14,11 +14,12 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <!-- Material Symbols -->
+  <!-- Material Symbols: axes pinned to the single opsz/wght/GRAD combo actually used
+       in style.css (only FILL varies, 0 or 1), instead of the full variable-font range -->
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" />
   <script src="js/theme-init.js"></script>
-  <link rel="stylesheet" href="css/style.css?v=2.2.0" />
+  <link rel="stylesheet" href="css/style.css?v=2.3.0" />
 </head>
 
 <body>
@@ -84,7 +85,9 @@
       <div class="search-field-wrap">
         <span class="material-symbols-rounded search-icon">search</span>
         <input type="search" id="search-input" class="search-input"
-          placeholder="Tìm theo tên nhà cung cấp hoặc mã số thuế..." autocomplete="off" spellcheck="false" data-i18n-placeholder="search_placeholder" />
+          placeholder="Tìm theo tên nhà cung cấp hoặc mã số thuế..." autocomplete="off" spellcheck="false"
+          data-i18n-placeholder="search_placeholder"
+          aria-label="Tìm theo tên nhà cung cấp hoặc mã số thuế..." data-i18n-aria-label="search_placeholder" />
         <button class="search-clear-btn" id="search-clear-btn" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm"
           hidden>
           <span class="material-symbols-rounded">close</span>
@@ -94,7 +97,7 @@
         <span class="results-count" id="results-count" data-i18n="results_loading">Đang tải...</span>
         <div class="sort-controls">
           <label for="type-select" class="sort-label" data-i18n="label_type">Loại:</label>
-          <select id="type-select" class="sort-select">
+          <select id="type-select" class="filter-select">
             <option value="all" data-i18n="opt_all">Tất cả</option>
             <option value="company" data-i18n="opt_company">Công ty</option>
             <option value="individual" data-i18n="opt_individual">Cá nhân</option>
@@ -121,15 +124,15 @@
               <th class="col-no">
                 <span data-i18n="th_no">STT</span>
               </th>
-              <th class="col-tax" data-sort="tax">
+              <th class="col-tax" data-sort="tax" tabindex="0" role="button" aria-sort="none">
                 <span data-i18n="th_tax">Mã số thuế</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
-              <th class="col-name" data-sort="name">
+              <th class="col-name" data-sort="name" tabindex="0" role="button" aria-sort="none">
                 <span data-i18n="th_name">Tên nhà cung cấp</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
-              <th class="col-date" data-sort="date">
+              <th class="col-date" data-sort="date" tabindex="0" role="button" aria-sort="none">
                 <span data-i18n="th_date">Ngày cấp</span>
                 <span class="sort-arrow material-symbols-rounded">unfold_more</span>
               </th>
@@ -175,7 +178,7 @@
   <!-- ── Toast ──────────────────────────────────────────────────────────────── -->
   <div class="toast-container" id="toast-container" aria-live="assertive"></div>
 
-  <script src="js/app.js?v=2.2.1"></script>
+  <script src="js/app.js?v=2.3.0"></script>
 </body>
 
 </html>
