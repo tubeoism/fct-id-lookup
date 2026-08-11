@@ -24,6 +24,16 @@
   --warning-color: hsl(40, 90%, 45%);
   --warning-bg: hsl(40, 90%, 95%);
 
+  --error-color: hsl(0, 70%, 45%);
+  --error-bg: hsl(0, 70%, 95%);
+
+  /* Toast backgrounds are fixed (not redefined under [data-theme="dark"]):
+     they always pair with white text, so lightness is chosen once to keep
+     contrast >=4.5:1 regardless of the surrounding page theme. */
+  --toast-error-bg: hsl(0, 70%, 45%);
+  --toast-success-bg: hsl(150, 65%, 22%);
+  --toast-info-bg: hsl(226, 70%, 38%);
+
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
@@ -195,7 +205,7 @@ input, select {
   letter-spacing: 0.05em;
   color: var(--text-main);
   border: 1.5px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 1px 4px;
   line-height: 1;
   transition: all var(--transition-fast);
@@ -209,13 +219,15 @@ input, select {
 /* Focus Visible – keyboard accessibility (WCAG 2.4.7) */
 .icon-btn:focus-visible,
 .pag-btn:focus-visible,
-.pag-page-btn:focus-visible {
+.pag-page-btn:focus-visible,
+.data-table th[data-sort]:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
 .search-input:focus-visible,
-.sort-select:focus-visible {
+.sort-select:focus-visible,
+.filter-select:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 0;
 }
@@ -338,6 +350,12 @@ input, select {
   box-shadow: 0 0 0 3px var(--primary-bg);
 }
 
+/* Hide the native Chromium/Safari clear affordance so it doesn't overlap #search-clear-btn */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .search-clear-btn {
   position: absolute;
   right: 12px;
@@ -381,7 +399,8 @@ input, select {
   color: var(--text-muted);
 }
 
-.sort-select {
+.sort-select,
+.filter-select {
   padding: 6px 32px 6px 12px;
   font-size: 0.9rem;
   background-color: var(--bg-surface);
@@ -396,17 +415,19 @@ input, select {
   cursor: pointer;
 }
 
-.sort-select:focus {
+.sort-select:focus,
+.filter-select:focus {
   outline: none;
   border-color: var(--primary-color);
 }
 
-#type-select {
+.filter-select {
   margin-right: 12px;
 }
 
 /* Dropdown arrow: higher contrast in Dark Mode */
-[data-theme="dark"] .sort-select {
+[data-theme="dark"] .sort-select,
+[data-theme="dark"] .filter-select {
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23aaa%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
 }
 
@@ -473,8 +494,8 @@ input, select {
   transition: opacity 0.2s, transform 0.2s;
 }
 
-.data-table th.sort-asc .sort-arrow { opacity: 1; content: 'arrow_upward'; transform: rotate(180deg); color: var(--primary-color); }
-.data-table th.sort-desc .sort-arrow { opacity: 1; content: 'arrow_downward'; color: var(--primary-color); }
+.data-table th.sort-asc .sort-arrow { opacity: 1; transform: rotate(180deg); color: var(--primary-color); }
+.data-table th.sort-desc .sort-arrow { opacity: 1; color: var(--primary-color); }
 .data-table th.sort-asc, .data-table th.sort-desc { color: var(--text-main); }
 
 .data-table td {
@@ -518,7 +539,7 @@ input, select {
   background: linear-gradient(90deg, var(--bg-surface-variant) 25%, var(--border-color) 50%, var(--bg-surface-variant) 75%);
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes loading {
@@ -527,9 +548,13 @@ input, select {
 }
 
 .empty-state {
+  color: var(--text-muted);
+}
+
+/* padding/margin have no effect on a <tr> box, so it must be applied to the td */
+.empty-state td {
   text-align: center;
   padding: 48px 24px;
-  color: var(--text-muted);
 }
 
 .empty-state .material-symbols-rounded {
@@ -648,9 +673,9 @@ input, select {
   pointer-events: auto;
 }
 
-.toast.toast-error { background-color: hsl(0, 70%, 45%); color: white; }
-.toast.toast-success { background-color: hsl(150, 65%, 22%); color: white; } /* darkened for WCAG AA contrast */
-.toast.toast-info { background-color: var(--primary-color); color: white; }
+.toast.toast-error { background-color: var(--toast-error-bg); color: white; }
+.toast.toast-success { background-color: var(--toast-success-bg); color: white; } /* darkened for WCAG AA contrast */
+.toast.toast-info { background-color: var(--toast-info-bg); color: white; } /* fixed color, not var(--primary-color): the dark-theme primary is too light for white text (~3:1) */
 
 .toast.hiding {
   animation: toast-out 0.3s forwards;

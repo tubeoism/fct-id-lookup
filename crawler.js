@@ -5,7 +5,8 @@
  *
  * Sử dụng: node crawler.js [--append | --full]
  *   --append  (mặc định): Chỉ bổ sung nhà cung cấp mới, giữ nguyên dữ liệu cũ
- *   --full:               Cập nhật toàn bộ (ghi đè, cập nhật tên nếu đổi)
+ *   --full:               Duyệt lại toàn bộ, cập nhật tên/ngày nếu đổi (không xoá bản ghi cũ
+ *                         đã biến mất khỏi nguồn — chỉ thêm/cập nhật, không phải ghi đè hoàn toàn)
  *
  * Output:
  *   registered_contractors.csv   — Danh sách nhà cung cấp (CSV)
@@ -18,6 +19,8 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+const { parse } = require('csv-parse/sync');
+const { stringify } = require('csv-stringify/sync');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const BASE_URL  = 'https://etaxvn.gdt.gov.vn/nccnn/Request';
@@ -75,18 +78,9 @@ function loadExistingCsv() {
   }
 
   const content = fs.readFileSync(CSV_FILE, 'utf-8').replace(/^\uFEFF/, ''); // strip BOM
-  const lines = content.split(/\r?\n/);
-  if (lines.length < 2) return { existingMap, rows };
+  const records = parse(content, { columns: true, skip_empty_lines: true, trim: true });
 
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    // Simple CSV parse (handles quoted fields with commas inside)
-    const cols = parseCsvLine(line);
-    const row = {};
-    headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+  for (const row of records) {
     // Migrate legacy 'Company Name' field
     if (!row['Provider Name'] && row['Contractor Name']) {
       row['Provider Name'] = row['Contractor Name'];
@@ -105,25 +99,6 @@ function loadExistingCsv() {
   return { existingMap, rows };
 }
 
-function parseCsvLine(line) {
-  const result = [];
-  let cur = '';
-  let inQuote = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
-      else { inQuote = !inQuote; }
-    } else if (ch === ',' && !inQuote) {
-      result.push(cur); cur = '';
-    } else {
-      cur += ch;
-    }
-  }
-  result.push(cur);
-  return result;
-}
-
 function saveCsv(records) {
   // Sort by Issuance Date+Time asc, then by original order
   records.sort((a, b) => {
@@ -139,21 +114,10 @@ function saveCsv(records) {
   });
 
   const headers = ['No.', 'Tax Code', 'Provider Name', 'Issuance Date', 'Issuance Time'];
-  const escapeField = (v) => {
-    const s = String(v ?? '');
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-    return s;
-  };
-
-  const lines = [
-    headers.join(','),
-    ...records.map(r => headers.map(h => escapeField(r[h])).join(',')),
-  ];
+  const csvBody = stringify(records, { header: true, columns: headers, record_delimiter: '\r\n' });
 
   // Write with UTF-8 BOM for Excel compatibility
-  fs.writeFileSync(CSV_FILE, '\uFEFF' + lines.join('\r\n'), 'utf-8');
+  fs.writeFileSync(CSV_FILE, '\uFEFF' + csvBody, 'utf-8');
   log(`   💾 Đã lưu ${records.length} nhà cung cấp → ${CSV_FILE}`);
 }
 

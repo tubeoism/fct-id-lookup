@@ -162,6 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
       el.placeholder = t(el.dataset.i18nPlaceholder);
     });
 
+    // Aria-labels
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+      el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
+    });
+
     document.title = t('app_title');
 
     if (els.langBtn && els.langText) {
@@ -184,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (contractors.length > 0) {
       calculateStats();
-      applyFilters();
+      applyFilters(false); // re-render for the new language without resetting currentPage
     }
   }
 
@@ -218,16 +223,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Data Fetching & Stats ────────────────────────────────────────────────
   async function fetchContractors() {
     setLoading(true);
+    let data;
     try {
       const res = await fetch('registered_contractors.json');
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      contractors = await res.json();
-      if (!Array.isArray(contractors)) throw new Error('Invalid data format: expected JSON array');
-
-      calculateStats();
-      applyFilters();
+      data = await res.json();
+      if (!Array.isArray(data)) throw new Error('Invalid data format: expected JSON array');
     } catch (err) {
-      console.error('Lỗi lấy danh sách:', err);
+      console.error('Lỗi tải dữ liệu:', err);
       showToast(t('err_load'), 'error');
       els.tableBody.innerHTML = `
         <tr class="empty-state">
@@ -237,6 +240,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
         </tr>
       `;
+      setLoading(false);
+      return;
+    }
+
+    contractors = data;
+    try {
+      calculateStats();
+      applyFilters();
+    } catch (err) {
+      // Distinct from the fetch/parse failure above: the JSON loaded fine but a
+      // record has an unexpected shape (e.g. a non-string field breaking .toLowerCase()).
+      console.error('Lỗi xử lý dữ liệu nhà cung cấp:', err);
+      showToast(t('err_load'), 'error');
     } finally {
       setLoading(false);
     }
@@ -247,21 +263,18 @@ document.addEventListener('DOMContentLoaded', () => {
     els.statTotal.textContent = formatNumber(total);
 
     const thisYear = new Date().getFullYear(); // local var avoids shadowing outer currentYear
-    const newThisYear = contractors.filter(c => {
-      if (!c['Issuance Date']) return false;
-      const parts = c['Issuance Date'].split('/');
-      if (parts.length !== 3) return false;
-      return parseInt(parts[2], 10) === thisYear;
-    }).length;
-
-    els.statYear.textContent = formatNumber(newThisYear);
-
-    // Find newest record by date+time
+    let newThisYear = 0;
     let newestTs = 0;
+
     contractors.forEach(c => {
+      const parts = (c['Issuance Date'] || '').split('/');
+      if (parts.length === 3 && parseInt(parts[2], 10) === thisYear) newThisYear++;
+
       const ts = parseDateTimeForSort(c['Issuance Date'], c['Issuance Time']);
       if (ts > newestTs) newestTs = ts;
     });
+
+    els.statYear.textContent = formatNumber(newThisYear);
 
     if (newestTs > 0) {
       els.statUpdated.textContent = new Date(newestTs).toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US');
@@ -271,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ─── Search, Sort & Pagination ────────────────────────────────────────────
-  function applyFilters() {
+  function applyFilters(resetPage = true) {
     const term = els.searchInput.value.toLowerCase().trim();
     const typeFilter = els.typeSelect.value;
 
@@ -294,10 +307,19 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredData.sort((a, b) => {
       let valA, valB;
       switch (currentSort.key) {
-        case 'tax':
+        case 'tax': {
           valA = a['Tax Code'] || '';
           valB = b['Tax Code'] || '';
+          // Compare numerically when both codes are all-digit, since tax codes
+          // aren't guaranteed to share a fixed length (crawler only requires 7+ digits).
+          if (/^\d+$/.test(valA) && /^\d+$/.test(valB)) {
+            const numA = BigInt(valA);
+            const numB = BigInt(valB);
+            const cmp = numA < numB ? -1 : numA > numB ? 1 : 0;
+            return currentSort.dir === 'asc' ? cmp : -cmp;
+          }
           return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
         case 'name':
           valA = a['Provider Name'] || '';
           valB = b['Provider Name'] || '';
@@ -306,6 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
         default: {
           valA = parseDateTimeForSort(a['Issuance Date'], a['Issuance Time']);
           valB = parseDateTimeForSort(b['Issuance Date'], b['Issuance Time']);
+          if (Number.isNaN(valA)) valA = 0;
+          if (Number.isNaN(valB)) valB = 0;
           if (valA !== valB) {
             return currentSort.dir === 'asc' ? valA - valB : valB - valA;
           }
@@ -317,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    currentPage = 1;
+    if (resetPage) currentPage = 1;
     renderTable();
   }
 
@@ -418,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     els.searchClearBtn.addEventListener('click', () => {
+      clearTimeout(searchTimeout);
       els.searchInput.value = '';
       els.searchClearBtn.hidden = true;
       applyFilters();
@@ -436,9 +461,9 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFilters();
     });
 
-    // Desktop Table Header Sort
+    // Desktop Table Header Sort (mouse + keyboard)
     els.thSortables.forEach(th => {
-      th.addEventListener('click', () => {
+      const activateSort = () => {
         const key = th.dataset.sort;
         if (currentSort.key === key) {
           currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
@@ -452,6 +477,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateTableHeaderSortUI();
         applyFilters();
+      };
+
+      th.addEventListener('click', activateSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateSort();
+        }
       });
     });
 
@@ -478,6 +511,9 @@ document.addEventListener('DOMContentLoaded', () => {
       th.classList.remove('sort-asc', 'sort-desc');
       if (th.dataset.sort === currentSort.key) {
         th.classList.add(`sort-${currentSort.dir}`);
+        th.setAttribute('aria-sort', currentSort.dir === 'asc' ? 'ascending' : 'descending');
+      } else {
+        th.setAttribute('aria-sort', 'none');
       }
     });
   }
