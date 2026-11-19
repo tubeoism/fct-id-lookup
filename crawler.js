@@ -28,6 +28,8 @@ const SCRIPT_DIR = __dirname;
 const CSV_FILE  = path.join(SCRIPT_DIR, 'registered_contractors.csv');
 const JSON_FILE = path.join(SCRIPT_DIR, 'registered_contractors.json');
 const TIMEOUT   = 60_000; // ms
+const GOTO_RETRIES    = 3;
+const GOTO_BACKOFF_MS = 10_000; // 10s, 20s, ...
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -187,13 +189,36 @@ function getIframe(page) {
   return iframe;
 }
 
+/**
+ * page.goto với retry + backoff. Dùng 'domcontentloaded' thay vì 'networkidle'
+ * vì site eTax chậm/có request treo khiến networkidle không bao giờ đạt.
+ */
+async function gotoWithRetry(page, url) {
+  let lastErr;
+  for (let attempt = 1; attempt <= GOTO_RETRIES; attempt++) {
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
+      // Chờ mạng yên tĩnh theo kiểu "best effort": không fail nếu không đạt
+      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < GOTO_RETRIES) {
+        const delay = GOTO_BACKOFF_MS * attempt;
+        log(`   ⚠ Tải trang thất bại (lần ${attempt}/${GOTO_RETRIES}): ${err.message.split('\n')[0]} — thử lại sau ${delay / 1000}s`);
+        await page.waitForTimeout(delay);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // ─── Main Crawler ─────────────────────────────────────────────────────────────
 async function crawlAllContractors(page) {
   const allData = [];
 
   log('[1/4] Đang tải trang chủ...');
-  await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: TIMEOUT });
-  await page.waitForLoadState('networkidle');
+  await gotoWithRetry(page, BASE_URL);
   await page.waitForTimeout(3000);
   log('   ✓ Trang chủ đã tải xong');
 
