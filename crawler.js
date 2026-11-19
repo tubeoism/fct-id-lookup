@@ -30,6 +30,8 @@ const JSON_FILE = path.join(SCRIPT_DIR, 'registered_contractors.json');
 const TIMEOUT   = 60_000; // ms
 const GOTO_RETRIES    = 3;
 const GOTO_BACKOFF_MS = 10_000; // 10s, 20s, ...
+const PAGE_RETRIES    = 3;      // số lần thử lại khi chuyển trang / trang trả về rỗng
+const ROWS_WAIT_MS    = 20_000; // thời gian tối đa chờ bảng dữ liệu hiển thị
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -148,7 +150,7 @@ async function extractTableData(frame) {
           const ten      = tds[2].textContent.trim();
           const thoigian = tds[3].textContent.trim();
           if (/^\d+$/.test(stt) && /^\d{7,}$/.test(mst)) {
-            results.push({ mst, ten, thoigian });
+            results.push({ stt, mst, ten, thoigian });
           }
         }
       }
@@ -157,6 +159,7 @@ async function extractTableData(frame) {
   });
 }
 
+/** Số trang lớn nhất trong các link đang hiển thị (site chỉ hiện một "cửa sổ" link, nên chỉ là cận dưới). */
 async function getPaginationInfo(frame) {
   return frame.evaluate(() => {
     let maxPage = 1;
@@ -169,6 +172,40 @@ async function getPaginationInfo(frame) {
     }
     return maxPage;
   });
+}
+
+/**
+ * Đọc tổng số trang / bản ghi do site tự công bố, ví dụ:
+ *   "Page 1/Total 7 page. Total record 334."
+ * Trả null cho trường không đọc được (không đoán mò).
+ */
+async function getSiteSummary(frame) {
+  const text = await frame.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+  const pages = text.match(/Total\s+(\d+)\s+page/i);
+  const records = text.match(/Total\s+record\s+(\d+)/i);
+  return {
+    totalPages: pages ? parseInt(pages[1], 10) : null,
+    totalRecords: records ? parseInt(records[1], 10) : null,
+  };
+}
+
+/**
+ * Chờ bảng dữ liệu có ít nhất 1 dòng hợp lệ (và, nếu có notFirstStt, dòng đầu phải khác
+ * trang trước — tức nội dung đã thực sự đổi). Trả null nếu hết thời gian.
+ */
+async function waitForRows(page, { notFirstStt = null, timeoutMs = ROWS_WAIT_MS } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const iframe = getIframe(page);
+      if (iframe) {
+        const rows = await extractTableData(iframe);
+        if (rows.length > 0 && (notFirstStt === null || rows[0].stt !== notFirstStt)) return rows;
+      }
+    } catch (_) { /* iframe đang điều hướng — thử lại */ }
+    await page.waitForTimeout(1000);
+  }
+  return null;
 }
 
 async function navigateToPage(frame, pageNum) {
@@ -218,25 +255,29 @@ async function crawlAllContractors(page) {
   const allData = [];
 
   log('[1/4] Đang tải trang chủ...');
-  await gotoWithRetry(page, BASE_URL);
-  await page.waitForTimeout(3000);
-  log('   ✓ Trang chủ đã tải xong');
-
   log('[2/4] Đang mở trang tra cứu nhà cung cấp...');
-  const link = page.locator('a[href*="corpTCuuTTinMSTProc"][target="mainframe"]').first();
-  if (await link.count() > 0) {
-    await link.click();
-    await page.waitForTimeout(3000);
-    log('   ✓ Đã mở trang tra cứu');
-  } else {
-    log('   ⚠ Không tìm thấy link tra cứu');
+  // Trang chủ đôi khi tải xong nhưng link tra cứu chưa kịp render → chờ link thật sự xuất hiện,
+  // nếu không thì tải lại trang thay vì đi tiếp với iframe rỗng.
+  const linkSel = 'a[href*="corpTCuuTTinMSTProc"][target="mainframe"]';
+  let opened = false;
+  for (let attempt = 1; attempt <= GOTO_RETRIES && !opened; attempt++) {
+    try {
+      await gotoWithRetry(page, BASE_URL);
+      await page.locator(linkSel).first().waitFor({ state: 'visible', timeout: 30_000 });
+      log('   ✓ Trang chủ đã tải xong');
+      await page.locator(linkSel).first().click();
+      await page.waitForTimeout(3000);
+      if (!getIframe(page)) throw new Error('chưa có iframe mainframe sau khi mở trang tra cứu');
+      opened = true;
+      log('   ✓ Đã mở trang tra cứu');
+    } catch (err) {
+      log(`   ⚠ Mở trang tra cứu thất bại (lần ${attempt}/${GOTO_RETRIES}): ${err.message.split('\n')[0]}`);
+      if (attempt < GOTO_RETRIES) await page.waitForTimeout(GOTO_BACKOFF_MS * attempt);
+    }
   }
+  if (!opened) throw new Error('Không mở được trang tra cứu / iframe sau nhiều lần thử');
 
   let iframe = getIframe(page);
-  if (!iframe) {
-    log('   ✗ Không thể truy cập iframe!');
-    process.exit(1);
-  }
   log('   ✓ Đã truy cập iframe');
   await page.waitForTimeout(3000);
 
@@ -260,34 +301,57 @@ async function crawlAllContractors(page) {
     } catch (_) { /* continue */ }
   }
   if (!clicked) log('   ⚠ Không tìm thấy nút tìm kiếm, thử tiếp tục...');
-  await page.waitForTimeout(5000);
 
   log('[4/4] Đang thu thập dữ liệu...');
+  const page1 = await waitForRows(page, { timeoutMs: 30_000 });
+  if (!page1) throw new Error('Trang 1 không có dữ liệu sau khi tìm kiếm');
   iframe = getIframe(page);
 
-  const page1 = await extractTableData(iframe);
-  const totalPages = await getPaginationInfo(iframe);
-  log(`   Tổng số trang: ${totalPages}`);
+  const summary = await getSiteSummary(iframe);
+  let totalPages = Math.max(summary.totalPages || 1, await getPaginationInfo(iframe));
+  log(`   Site công bố: ${summary.totalRecords ?? '?'} bản ghi / ${summary.totalPages ?? '?'} trang`);
   log(`   Trang 1: ${page1.length} nhà cung cấp`);
   allData.push(...page1);
 
+  // Site chỉ hiển thị một "cửa sổ" link phân trang, nên tổng số trang được cập nhật lại
+  // sau mỗi trang thay vì chốt cứng từ trang 1.
+  let prevFirstStt = page1[0].stt;
   for (let pg = 2; pg <= totalPages; pg++) {
     log(`   Đang tải trang ${pg}/${totalPages}...`);
-    iframe = getIframe(page);
-    const navigated = await navigateToPage(iframe, pg);
-    if (navigated) {
-      await page.waitForTimeout(4000);
-      iframe = getIframe(page);
-      const pgData = await extractTableData(iframe);
-      log(`   Trang ${pg}: ${pgData.length} nhà cung cấp`);
-      allData.push(...pgData);
-    } else {
-      log(`   ⚠ Không thể chuyển đến trang ${pg}`);
+    let pgData = null;
+    for (let attempt = 1; attempt <= PAGE_RETRIES && !pgData; attempt++) {
+      const navigated = await navigateToPage(getIframe(page), pg).catch(() => false);
+      if (navigated) pgData = await waitForRows(page, { notFirstStt: prevFirstStt });
+      if (!pgData) {
+        log(`   ⚠ Trang ${pg} chưa tải được (lần ${attempt}/${PAGE_RETRIES})`);
+        await page.waitForTimeout(2000 * attempt);
+      }
     }
+    if (!pgData) throw new Error(`Không tải được trang ${pg}/${totalPages} sau ${PAGE_RETRIES} lần thử`);
+
+    log(`   Trang ${pg}: ${pgData.length} nhà cung cấp`);
+    allData.push(...pgData);
+    prevFirstStt = pgData[0].stt;
+    totalPages = Math.max(totalPages, await getPaginationInfo(getIframe(page)).catch(() => totalPages));
   }
 
   log(`\n   📊 Tổng thu thập: ${allData.length} nhà cung cấp`);
-  return allData;
+  return { data: allData, expectedRecords: summary.totalRecords };
+}
+
+/**
+ * Đối chiếu kết quả crawl. Trả về chuỗi lỗi nếu dữ liệu thiếu, null nếu đạt.
+ * Nguồn là danh bạ tích luỹ, nên thu được ít hơn số site công bố (hoặc ít hơn CSV hiện có
+ * khi không đọc được số site công bố) nghĩa là crawl bị cắt cụt.
+ */
+function validateCrawl({ collected, expectedRecords, existingCount }) {
+  if (collected === 0) return 'Không thu thập được bản ghi nào';
+  if (expectedRecords != null) {
+    if (collected < expectedRecords) return `Thu được ${collected} < ${expectedRecords} bản ghi site công bố`;
+    return null;
+  }
+  if (collected < existingCount) return `Không đọc được tổng số của site và thu được ${collected} < ${existingCount} bản ghi trong CSV`;
+  return null;
 }
 
 // ─── Entry Point ──────────────────────────────────────────────────────────────
@@ -307,9 +371,9 @@ async function crawlAllContractors(page) {
   });
   const page = await ctx.newPage();
 
-  let allContractors;
+  let crawl;
   try {
-    allContractors = await crawlAllContractors(page);
+    crawl = await crawlAllContractors(page);
   } catch (err) {
     log(`\n[LỖI] ${err.message}`);
     console.error(err);
@@ -318,9 +382,25 @@ async function crawlAllContractors(page) {
   }
   await browser.close();
 
-  if (!allContractors || allContractors.length === 0) {
-    log('\n   ⚠ Không có dữ liệu để lưu.');
-    process.exit(0);
+  // Khử trùng theo MST (giữ thứ tự xuất hiện) phòng khi site dịch trang giữa chừng
+  const uniq = new Map();
+  for (const c of crawl.data) if (!uniq.has(c.mst)) uniq.set(c.mst, c);
+  const allContractors = Array.from(uniq.values());
+  if (allContractors.length !== crawl.data.length) {
+    log(`   ⚠ Phát hiện ${crawl.data.length - allContractors.length} bản ghi trùng MST, đã loại bỏ.`);
+  }
+  if (crawl.expectedRecords != null && crawl.expectedRecords < existingMap.size) {
+    log(`   ⚠ Site công bố ${crawl.expectedRecords} < CSV hiện có ${existingMap.size} (site có thể đã xoá bản ghi).`);
+  }
+
+  const problem = validateCrawl({
+    collected: allContractors.length,
+    expectedRecords: crawl.expectedRecords,
+    existingCount: existingMap.size,
+  });
+  if (problem) {
+    log(`\n[LỖI] Dữ liệu thu thập không đầy đủ: ${problem}. Không ghi đè CSV/JSON.`);
+    process.exit(1);
   }
 
   log('\n   Đang xử lý dữ liệu...');
